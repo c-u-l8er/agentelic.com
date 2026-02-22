@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Agentelic — Premium Agent Engineering</title>
+        <meta
+            name="description"
+            content="Enterprise-grade AI agent builder. Spec-driven design, deterministic testing, governed deployment. Agents that ship."
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Archivo:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg: #08080a;
+                --s1: #0f0f12;
+                --s2: #16161a;
+                --s3: #1e1e23;
+                --b1: rgba(255, 255, 255, 0.05);
+                --b2: rgba(255, 255, 255, 0.09);
+                --b3: rgba(255, 255, 255, 0.16);
+                --t1: #e8e6e1;
+                --t2: #8a8780;
+                --t3: #55524d;
+                --t4: #333130;
+                --v: #b4a0e8;
+                --vd: rgba(180, 160, 232, 0.1);
+                --vg: rgba(180, 160, 232, 0.04);
+                --w: #e8c87a;
+                --wd: rgba(232, 200, 122, 0.1);
+                --cream: #f5f0e6;
+            }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html {
+                scroll-behavior: smooth;
+            }
+            body {
+                font-family: "Archivo", sans-serif;
+                background: var(--bg);
+                color: var(--t1);
+                -webkit-font-smoothing: antialiased;
+                font-size: 14px;
+                line-height: 1.7;
+                overflow-x: hidden;
+            }
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+
+            /* Accent lines */
+            .accent-lines {
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 0;
+                overflow: hidden;
+            }
+            .accent-lines::before,
+            .accent-lines::after {
+                content: "";
+                position: absolute;
+                width: 1px;
+                height: 100vh;
+                background: linear-gradient(
+                    180deg,
+                    transparent,
+                    var(--b1) 30%,
+                    var(--b1) 70%,
+                    transparent
+                );
+            }
+            .accent-lines::before {
+                left: 15%;
+            }
+            .accent-lines::after {
+                right: 15%;
+            }
+            .accent-orb {
+                position: fixed;
+                width: 500px;
+                height: 500px;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 0;
+                filter: blur(100px);
+                opacity: 0.3;
+            }
+            .accent-orb.o1 {
+                background: var(--vg);
+                top: -10%;
+                left: 60%;
+                animation: drift 25s ease-in-out infinite alternate;
+            }
+            .accent-orb.o2 {
+                background: var(--wd);
+                bottom: -10%;
+                right: 60%;
+                animation: drift 30s ease-in-out infinite alternate-reverse;
+            }
+            @keyframes drift {
+                0% {
+                    transform: translate(0, 0);
+                }
+                100% {
+                    transform: translate(40px, -40px);
+                }
+            }
+
+            .page {
+                position: relative;
+                z-index: 1;
+            }
+
+            /* Nav */
+            nav {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background: rgba(8, 8, 10, 0.9);
+                backdrop-filter: blur(14px);
+                border-bottom: 1px solid var(--b1);
+            }
+            .nav-w {
+                max-width: 1040px;
+                margin: 0 auto;
+                padding: 0 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 54px;
+            }
+            .nav-l {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 22px;
+                font-weight: 400;
+                letter-spacing: -0.02em;
+            }
+            .nav-l span {
+                color: var(--v);
+            }
+            .nav-r {
+                display: flex;
+                align-items: center;
+                gap: 1.5rem;
+            }
+            .nav-r a {
+                font-size: 12px;
+                color: var(--t3);
+                letter-spacing: 0.06em;
+                font-weight: 400;
+                transition: color 0.2s;
+            }
+            .nav-r a:hover {
+                color: var(--v);
+            }
+            .nav-r .cta {
+                color: var(--v);
+                border: 1px solid rgba(180, 160, 232, 0.3);
+                padding: 5px 14px;
+                border-radius: 4px;
+                font-weight: 500;
+            }
+            .nav-r .cta:hover {
+                background: rgba(180, 160, 232, 0.06);
+            }
+
+            .wrap {
+                max-width: 1040px;
+                margin: 0 auto;
+                padding: 0 2rem;
+            }
+
+            /* Hero — editorial layout */
+            .hero {
+                padding: 8rem 0 5rem;
+                text-align: center;
+                position: relative;
+            }
+            .hero-kicker {
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.3em;
+                text-transform: uppercase;
+                color: var(--v);
+                margin-bottom: 1.25rem;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 0.2s forwards;
+            }
+            .hero h1 {
+                font-family: "Cormorant Garamond", serif;
+                font-size: clamp(3.2rem, 8vw, 6rem);
+                font-weight: 300;
+                line-height: 1;
+                letter-spacing: -0.04em;
+                max-width: 800px;
+                margin: 0 auto;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 0.35s forwards;
+            }
+            .hero h1 em {
+                font-style: italic;
+                color: var(--w);
+            }
+            .hero-rule {
+                width: 60px;
+                height: 1px;
+                background: var(--b3);
+                margin: 1.5rem auto;
+                opacity: 0;
+                animation: fadeUp 0.6s ease 0.5s forwards;
+            }
+            .hero-sub {
+                font-family: "Cormorant Garamond", serif;
+                font-size: clamp(1.1rem, 2vw, 1.4rem);
+                font-weight: 300;
+                font-style: italic;
+                color: var(--t2);
+                max-width: 500px;
+                margin: 0 auto;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 0.55s forwards;
+            }
+            .hero-desc {
+                font-size: 13px;
+                font-weight: 300;
+                color: var(--t3);
+                max-width: 440px;
+                margin: 1.5rem auto 0;
+                line-height: 1.8;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 0.7s forwards;
+            }
+
+            .hero-nums {
+                display: flex;
+                justify-content: center;
+                gap: 4rem;
+                margin-top: 3rem;
+                flex-wrap: wrap;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 0.85s forwards;
+            }
+            .hero-num {
+                text-align: center;
+            }
+            .hero-num .val {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 2.8rem;
+                font-weight: 300;
+                display: block;
+                line-height: 1.1;
+                letter-spacing: -0.03em;
+            }
+            .hero-num .val span {
+                color: var(--v);
+            }
+            .hero-num .lbl {
+                font-size: 10px;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: var(--t4);
+                margin-top: 4px;
+                font-weight: 500;
+            }
+
+            .hero-acts {
+                display: flex;
+                justify-content: center;
+                gap: 0.75rem;
+                margin-top: 2.5rem;
+                flex-wrap: wrap;
+                opacity: 0;
+                animation: fadeUp 0.8s ease 1s forwards;
+            }
+            .btn {
+                font-family: "Archivo", sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                padding: 10px 22px;
+                border-radius: 5px;
+                transition: all 0.25s;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                letter-spacing: 0.02em;
+            }
+            .btn-v {
+                background: var(--v);
+                color: var(--bg);
+                border: none;
+            }
+            .btn-v:hover {
+                box-shadow: 0 0 28px rgba(180, 160, 232, 0.3);
+                transform: translateY(-1px);
+            }
+            .btn-o {
+                border: 1px solid var(--b2);
+                color: var(--t2);
+                background: transparent;
+            }
+            .btn-o:hover {
+                border-color: var(--v);
+                color: var(--v);
+            }
+
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(18px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Sections */
+            section {
+                padding: 5rem 0;
+                border-top: 1px solid var(--b1);
+            }
+            .sec-kicker {
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.3em;
+                text-transform: uppercase;
+                color: var(--t4);
+                margin-bottom: 0.75rem;
+            }
+            section h2 {
+                font-family: "Cormorant Garamond", serif;
+                font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+                font-weight: 300;
+                letter-spacing: -0.025em;
+                line-height: 1.15;
+            }
+            .prose {
+                font-size: 13.5px;
+                font-weight: 300;
+                color: var(--t2);
+                max-width: 540px;
+                line-height: 1.9;
+            }
+            .prose + .prose {
+                margin-top: 0.75rem;
+            }
+            .prose strong {
+                color: var(--t1);
+                font-weight: 500;
+            }
+
+            /* Three pillars */
+            .pillars {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1px;
+                background: var(--b1);
+                border: 1px solid var(--b1);
+                border-radius: 8px;
+                overflow: hidden;
+                margin-top: 2.5rem;
+            }
+            .pillar {
+                background: var(--bg);
+                padding: 2.5rem;
+                position: relative;
+                transition: background 0.3s;
+            }
+            .pillar:hover {
+                background: var(--s1);
+            }
+            .pillar::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, var(--v), var(--w));
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .pillar:hover::before {
+                opacity: 1;
+            }
+            .pillar .n {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 3rem;
+                font-weight: 300;
+                color: var(--t4);
+                line-height: 1;
+                margin-bottom: 0.75rem;
+            }
+            .pillar h4 {
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: var(--v);
+                margin-bottom: 0.5rem;
+            }
+            .pillar p {
+                font-size: 12.5px;
+                font-weight: 300;
+                color: var(--t2);
+                line-height: 1.8;
+            }
+
+            /* Callout */
+            .cta-box {
+                border: 1px solid var(--b2);
+                border-left: 3px solid var(--v);
+                border-radius: 0 8px 8px 0;
+                padding: 1.5rem 2rem;
+                background: var(--s1);
+                margin-top: 1.5rem;
+            }
+            .cta-box h3 {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 18px;
+                font-weight: 400;
+                margin-bottom: 0.3rem;
+            }
+            .cta-box p {
+                font-size: 12.5px;
+                color: var(--t2);
+                font-weight: 300;
+                line-height: 1.8;
+            }
+
+            /* Comparison */
+            .tbl {
+                margin-top: 2rem;
+                overflow-x: auto;
+                border: 1px solid var(--b1);
+                border-radius: 8px;
+            }
+            .tbl table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+            .tbl thead th {
+                text-align: left;
+                font-weight: 600;
+                font-size: 10px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--t4);
+                padding: 10px 16px;
+                background: var(--s1);
+                border-bottom: 1px solid var(--b1);
+            }
+            .tbl tbody td {
+                padding: 9px 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+                color: var(--t2);
+                font-weight: 300;
+            }
+            .tbl tbody tr:hover td {
+                background: rgba(180, 160, 232, 0.02);
+                color: var(--t1);
+            }
+            .y {
+                color: var(--v);
+                font-weight: 500;
+            }
+            .n {
+                color: var(--t4);
+            }
+
+            /* Pricing */
+            .pricing {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1px;
+                background: var(--b1);
+                border: 1px solid var(--b1);
+                border-radius: 8px;
+                overflow: hidden;
+                margin-top: 2.5rem;
+            }
+            .plan {
+                background: var(--bg);
+                padding: 2.5rem;
+                position: relative;
+            }
+            .plan.feat {
+                background: var(--s1);
+            }
+            .plan.feat::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, var(--v), var(--w));
+            }
+            .plan-label {
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                color: var(--t4);
+                margin-bottom: 0.6rem;
+            }
+            .plan-price {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 2.4rem;
+                font-weight: 300;
+                letter-spacing: -0.02em;
+            }
+            .plan-price small {
+                font-size: 14px;
+                color: var(--t3);
+                font-family: "Archivo", sans-serif;
+            }
+            .plan-detail {
+                font-size: 12px;
+                color: var(--t3);
+                font-weight: 300;
+                line-height: 1.9;
+                margin-top: 1rem;
+            }
+
+            /* Ecosystem */
+            .eco {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1px;
+                background: var(--b1);
+                border: 1px solid var(--b1);
+                border-radius: 8px;
+                overflow: hidden;
+                margin-top: 2rem;
+            }
+            .eco-cd {
+                background: var(--bg);
+                padding: 2rem;
+                transition: background 0.2s;
+            }
+            .eco-cd:hover {
+                background: var(--s1);
+            }
+            .eco-cd h4 {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.15em;
+                color: var(--v);
+                margin-bottom: 0.25rem;
+                font-weight: 600;
+            }
+            .eco-cd .nm {
+                font-family: "Cormorant Garamond", serif;
+                font-size: 18px;
+                font-weight: 400;
+                margin-bottom: 0.35rem;
+                letter-spacing: -0.01em;
+            }
+            .eco-cd p {
+                font-size: 12px;
+                color: var(--t3);
+                font-weight: 300;
+                line-height: 1.8;
+            }
+
+            /* Pipeline */
+            .pipeline {
+                margin-top: 2rem;
+                border: 1px solid var(--b1);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .pipe-row {
+                display: flex;
+                align-items: stretch;
+                border-bottom: 1px solid var(--b1);
+            }
+            .pipe-row:last-child {
+                border-bottom: none;
+            }
+            .pipe-step {
+                flex: 0 0 100px;
+                padding: 14px 16px;
+                background: var(--s1);
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--t4);
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                border-right: 1px solid var(--b1);
+            }
+            .pipe-desc {
+                padding: 14px 16px;
+                font-size: 12.5px;
+                color: var(--t2);
+                font-weight: 300;
+                line-height: 1.8;
+            }
+            .pipe-desc strong {
+                color: var(--t1);
+                font-weight: 500;
+            }
+            .pipe-arrow {
+                flex: 0 0 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--t4);
+                font-size: 14px;
+            }
+
+            footer {
+                padding: 3rem 0;
+                border-top: 1px solid var(--b1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+            footer p {
+                font-size: 11px;
+                color: var(--t4);
+            }
+            footer a {
+                color: var(--v);
+            }
+
+            @media (max-width: 800px) {
+                .pillars,
+                .pricing,
+                .eco {
+                    grid-template-columns: 1fr;
+                }
+                .hero-nums {
+                    gap: 2rem;
+                }
+                .hero {
+                    padding: 5rem 0 3rem;
+                }
+                .nav-r a:not(.cta) {
+                    display: none;
+                }
+                .pipe-row {
+                    flex-direction: column;
+                }
+                .pipe-step {
+                    border-right: none;
+                    border-bottom: 1px solid var(--b1);
+                }
+                .pipe-arrow {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="accent-lines"></div>
+        <div class="accent-orb o1"></div>
+        <div class="accent-orb o2"></div>
+        <div class="page">
+            <nav>
+                <div class="nav-w">
+                    <a href="#" class="nav-l">Agent<span>elic</span></a>
+                    <div class="nav-r">
+                        <a href="#problem">Problem</a>
+                        <a href="#method">Method</a>
+                        <a href="#compare">Compare</a>
+                        <a href="#pricing">Pricing</a>
+                        <a href="#" class="cta">Early Access</a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="wrap">
+                <!-- HERO -->
+                <div class="hero">
+                    <div class="hero-kicker">Enterprise Agent Engineering</div>
+                    <h1>Agents that <em>ship.</em></h1>
+                    <div class="hero-rule"></div>
+                    <p class="hero-sub">
+                        The engineering discipline your AI agents have been
+                        missing.
+                    </p>
+                    <p class="hero-desc">
+                        Spec-driven design. Deterministic testing. Governed
+                        deployment. Built on OpenSentience. Distributed via
+                        FleetPrompt. No vendor lock-in.
+                    </p>
+                    <div class="hero-nums">
+                        <div class="hero-num">
+                            <span class="val">57<span>%</span></span
+                            ><span class="lbl"
+                                >Agents Now<br />in Production</span
+                            >
+                        </div>
+                        <div class="hero-num">
+                            <span class="val">32<span>%</span></span
+                            ><span class="lbl"
+                                >Cite Quality<br />as #1 Blocker</span
+                            >
+                        </div>
+                        <div class="hero-num">
+                            <span class="val">$48<span>B</span></span
+                            ><span class="lbl">Agent Market<br />by 2030</span>
+                        </div>
+                    </div>
+                    <div class="hero-acts">
+                        <a href="#" class="btn btn-v">Request Early Access →</a>
+                        <a href="#method" class="btn btn-o">See How It Works</a>
+                    </div>
+                </div>
+
+                <!-- PROBLEM -->
+                <section id="problem">
+                    <div class="sec-kicker">The Gap</div>
+                    <h2>
+                        The industry builds demos.<br />Enterprises need
+                        production.
+                    </h2>
+                    <div
+                        style="
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 2rem;
+                            margin-top: 1.5rem;
+                        "
+                    >
+                        <div>
+                            <p class="prose">
+                                57% of organizations have agents in production,
+                                but
+                                <strong
+                                    >32% cite quality as the #1 barrier</strong
+                                >
+                                (LangChain, 2026). Gartner predicts over 40% of
+                                agentic AI projects will be scrapped by 2027 —
+                                not because the models fail, but because they
+                                aren't engineered for reality.
+                            </p>
+                            <p class="prose">
+                                20+ no-code builders optimize for impressive
+                                first demos. Enterprise platforms like
+                                <strong>OpenAI Frontier</strong> and
+                                <strong>Salesforce AgentForce</strong> provide
+                                governance but demand total lock-in. Neither
+                                serves engineering teams that need reliability.
+                            </p>
+                        </div>
+                        <div>
+                            <div class="cta-box">
+                                <h3>OpenAI Frontier (Feb 2026)</h3>
+                                <p>
+                                    OpenAI's enterprise agent platform treats
+                                    agents as "AI coworkers." Fortune calls it
+                                    OpenAI's bid to become the "operating system
+                                    of the enterprise." Agentelic provides the
+                                    same rigor — without the lock-in, on your
+                                    own infrastructure.
+                                </p>
+                            </div>
+                            <div
+                                class="cta-box"
+                                style="
+                                    margin-top: 0.75rem;
+                                    border-left-color: var(--w);
+                                "
+                            >
+                                <h3>Next Moca ADL (Feb 2026)</h3>
+                                <p>
+                                    InfoQ reported on Agent Definition Language
+                                    — a vendor-neutral spec for agents.
+                                    Validates SpecPrompt's thesis: the industry
+                                    needs a standard definition layer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- METHOD -->
+                <section id="method">
+                    <div class="sec-kicker">Three Pillars</div>
+                    <h2>Engineering-grade agent development</h2>
+                    <div class="pillars">
+                        <div class="pillar">
+                            <div class="n">01</div>
+                            <h4>Spec-Driven Design</h4>
+                            <p>
+                                Every agent starts from a SpecPrompt
+                                specification — behavior contracts, acceptance
+                                criteria, boundary conditions. The spec is the
+                                source of truth, not the prompt. AWS Kiro,
+                                GitHub Spec Kit, and Thoughtworks all validate
+                                SDD.
+                            </p>
+                        </div>
+                        <div class="pillar">
+                            <div class="n">02</div>
+                            <h4>Deterministic Testing</h4>
+                            <p>
+                                Agents tested against specs with reproducible
+                                scenarios. Every tool call mocked, every output
+                                validated. Regression suites catch drift before
+                                production. No more "it worked when I tried it."
+                            </p>
+                        </div>
+                        <div class="pillar">
+                            <div class="n">03</div>
+                            <h4>Governed Deployment</h4>
+                            <p>
+                                Staged rollouts with canary testing. Permission
+                                review gates. Compliance checks. Full audit
+                                trail from spec to production. Rollback any
+                                version in seconds.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PIPELINE -->
+                <section>
+                    <div class="sec-kicker">Build Pipeline</div>
+                    <h2>From spec to production</h2>
+                    <div class="pipeline">
+                        <div class="pipe-row">
+                            <div class="pipe-step">Define</div>
+                            <div class="pipe-desc">
+                                <strong>SPEC.md</strong> — Write or generate the
+                                agent specification. Purpose, capabilities,
+                                constraints, acceptance tests. Versioned in git.
+                            </div>
+                            <div class="pipe-arrow">→</div>
+                        </div>
+                        <div class="pipe-row">
+                            <div class="pipe-step">Build</div>
+                            <div class="pipe-desc">
+                                <strong>Code generation</strong> — Spec parsed
+                                into agent scaffolding. MCP tools wired.
+                                Permissions declared. Graphonomous memory
+                                connected.
+                            </div>
+                            <div class="pipe-arrow">→</div>
+                        </div>
+                        <div class="pipe-row">
+                            <div class="pipe-step">Test</div>
+                            <div class="pipe-desc">
+                                <strong>Deterministic testing</strong> — Every
+                                tool call mocked against spec. Regression
+                                suites. Boundary testing. 89% of production
+                                teams use observability; we make testing equally
+                                rigorous.
+                            </div>
+                            <div class="pipe-arrow">→</div>
+                        </div>
+                        <div class="pipe-row">
+                            <div class="pipe-step">Deploy</div>
+                            <div class="pipe-desc">
+                                <strong>Staged rollout</strong> — Staging →
+                                Canary → Production. Permission gates.
+                                Compliance review. Deployed to OpenSentience
+                                runtime. One-command rollback.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COMPARISON -->
+                <section id="compare">
+                    <div class="sec-kicker">Differentiation</div>
+                    <h2>Why not the alternatives?</h2>
+                    <p class="prose">
+                        The market optimizes for time-to-first-demo. Agentelic
+                        optimizes for time-to-reliable-production.
+                    </p>
+                    <div class="tbl">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Agentelic</th>
+                                    <th>No-Code Builders</th>
+                                    <th>OpenAI Frontier</th>
+                                    <th>Dev Frameworks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Spec-driven design</td>
+                                    <td class="y">SpecPrompt built-in</td>
+                                    <td class="n">None</td>
+                                    <td class="n">None</td>
+                                    <td class="n">Manual</td>
+                                </tr>
+                                <tr>
+                                    <td>Deterministic testing</td>
+                                    <td class="y">First-class</td>
+                                    <td class="n">None</td>
+                                    <td>Eval loops</td>
+                                    <td class="n">DIY</td>
+                                </tr>
+                                <tr>
+                                    <td>Versioned deployment</td>
+                                    <td class="y">Git-native</td>
+                                    <td class="n">Overwrite</td>
+                                    <td>Versioned</td>
+                                    <td class="n">Manual CI/CD</td>
+                                </tr>
+                                <tr>
+                                    <td>Compliance & audit</td>
+                                    <td class="y">Templates built-in</td>
+                                    <td class="n">None</td>
+                                    <td>IAM-based</td>
+                                    <td class="n">Custom</td>
+                                </tr>
+                                <tr>
+                                    <td>Runtime</td>
+                                    <td class="y">OpenSentience (local)</td>
+                                    <td class="n">Cloud-only</td>
+                                    <td class="n">OpenAI cloud</td>
+                                    <td>Varies</td>
+                                </tr>
+                                <tr>
+                                    <td>Protocol</td>
+                                    <td class="y">MCP native</td>
+                                    <td class="n">Plugins</td>
+                                    <td>OpenAI API</td>
+                                    <td>Varies</td>
+                                </tr>
+                                <tr>
+                                    <td>Continual learning</td>
+                                    <td class="y">Graphonomous</td>
+                                    <td class="n">None</td>
+                                    <td>Feedback loops</td>
+                                    <td class="n">None</td>
+                                </tr>
+                                <tr>
+                                    <td>Vendor lock-in</td>
+                                    <td class="y">None</td>
+                                    <td>Medium</td>
+                                    <td class="n">OpenAI</td>
+                                    <td>Minimal</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- PRICING -->
+                <section id="pricing">
+                    <div class="sec-kicker">Pricing</div>
+                    <h2>Start building today</h2>
+                    <div class="pricing">
+                        <div class="plan">
+                            <div class="plan-label">Builder</div>
+                            <div class="plan-price">$49<small>/mo</small></div>
+                            <div class="plan-detail">
+                                5 agents · Spec-driven design · Deterministic
+                                testing · Local deployment via OpenSentience ·
+                                Community support
+                            </div>
+                        </div>
+                        <div class="plan feat">
+                            <div class="plan-label">Team</div>
+                            <div class="plan-price">
+                                $199<small>/seat/mo</small>
+                            </div>
+                            <div class="plan-detail">
+                                Unlimited agents · Staging + production ·
+                                Role-based access · Compliance templates ·
+                                Graphonomous integration · Priority support
+                            </div>
+                        </div>
+                        <div class="plan">
+                            <div class="plan-label">Enterprise</div>
+                            <div class="plan-price">Custom</div>
+                            <div class="plan-detail">
+                                Dedicated infrastructure · SSO/SAML · Custom
+                                compliance · SLA guarantees · Managed
+                                Graphonomous · White-glove onboarding
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ECOSYSTEM -->
+                <section>
+                    <div class="sec-kicker">[&] Ecosystem</div>
+                    <h2>Integrated by design</h2>
+                    <div class="cta-box">
+                        <h3>The Full Pipeline</h3>
+                        <p>
+                            <strong>SpecPrompt</strong> defines the contract →
+                            <strong>Agentelic</strong> builds, tests, deploys →
+                            <strong>OpenSentience</strong> runs with governance
+                            → <strong>Graphonomous</strong> provides memory →
+                            <strong>FleetPrompt</strong> distributes →
+                            <strong>Delegatic</strong> orchestrates multi-agent
+                            systems.
+                        </p>
+                    </div>
+                    <div class="eco">
+                        <div class="eco-cd">
+                            <h4>Standards</h4>
+                            <div class="nm">SpecPrompt</div>
+                            <p>
+                                SPEC.md files define behavior, constraints, and
+                                acceptance tests that drive the build pipeline.
+                            </p>
+                        </div>
+                        <div class="eco-cd">
+                            <h4>Runtime</h4>
+                            <div class="nm">OpenSentience</div>
+                            <p>
+                                Local-first execution with process isolation,
+                                fine-grained permissions, and full audit trails.
+                            </p>
+                        </div>
+                        <div class="eco-cd">
+                            <h4>Memory</h4>
+                            <div class="nm">Graphonomous</div>
+                            <p>
+                                Knowledge graphs that grow with use. Agents
+                                learn from production without retraining.
+                            </p>
+                        </div>
+                        <div class="eco-cd">
+                            <h4>Distribution</h4>
+                            <div class="nm">FleetPrompt</div>
+                            <p>
+                                Publish tested agents to the marketplace.
+                                Community-reviewed, trust-scored, ready for
+                                install.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="wrap">
+                <footer>
+                    <p>
+                        &copy; 2026
+                        <a href="https://ampersandboxdesign.com"
+                            >[&] Ampersand Box Design</a
+                        >
+                    </p>
+                    <p>
+                        agentelic.com ·
+                        <a href="mailto:hello@agentelic.com">Contact</a>
+                    </p>
+                </footer>
+            </div>
+        </div>
+    </body>
+</html>
