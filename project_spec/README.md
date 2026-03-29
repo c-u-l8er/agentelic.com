@@ -180,6 +180,277 @@ describe "customer-support-v2" do
 end
 ```
 
+### 4.4 Data Model (Ecto Schemas)
+
+#### 4.4.1 Agents
+
+```elixir
+defmodule Agentelic.Agents.Agent do
+  use Ecto.Schema
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  schema "agents" do
+    field :name, :string
+    field :slug, :string
+    field :description, :string
+    field :status, Ecto.Enum, values: [:draft, :building, :testing, :deployable, :deployed, :archived]
+
+    # Spec linkage
+    field :spec_path, :string              # Path to SPEC.md (relative to project root)
+    field :spec_hash, :string              # SHA-256 of SPEC.md at last build
+    field :ampersand_path, :string         # Path to ampersand.json
+    field :ampersand_hash, :string         # SHA-256 of ampersand.json at last build
+
+    # Build metadata
+    field :framework, :string              # e.g. "elixir", "typescript", "python"
+    field :runtime_target, :string         # e.g. "opensentience", "cloudflare", "agentcore"
+    field :last_build_at, :utc_datetime_usec
+    field :last_test_at, :utc_datetime_usec
+
+    belongs_to :user, Agentelic.Accounts.User, type: :binary_id
+    has_many :builds, Agentelic.Builds.Build
+    has_many :test_runs, Agentelic.Testing.TestRun
+    has_many :deployments, Agentelic.Deploy.Deployment
+
+    timestamps()
+  end
+end
+```
+
+**Invariants:**
+- `slug` is globally unique, lowercase alphanumeric + hyphens
+- `spec_hash` and `ampersand_hash` are recomputed on every build — stale hashes trigger a rebuild warning
+- Status transitions: `draft → building → testing → deployable → deployed → archived`
+- Only agents in `deployable` or `deployed` status can be published to FleetPrompt
+
+#### 4.4.2 Builds
+
+```elixir
+defmodule Agentelic.Builds.Build do
+  use Ecto.Schema
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  schema "builds" do
+    belongs_to :agent, Agentelic.Agents.Agent, type: :binary_id
+    field :version, :string                # semver from SPEC.md frontmatter
+    field :status, Ecto.Enum, values: [:pending, :parsing, :generating, :compiling, :succeeded, :failed]
+
+    # Pipeline stages (each stores timing + output)
+    field :parse_result, :map              # Parsed SpecPrompt.Spec struct as map
+    field :parse_duration_ms, :integer
+    field :generation_result, :map         # Generated code artifacts manifest
+    field :generation_duration_ms, :integer
+    field :compile_result, :map            # Compilation output (warnings, errors)
+    field :compile_duration_ms, :integer
+
+    # Artifact
+    field :artifact_hash, :string          # SHA-256 of build output bundle
+    field :artifact_path, :string          # Storage path for the bundle
+    field :error_message, :string          # Human-readable error if failed
+
+    # Provenance
+    field :spec_hash, :string              # SHA-256 of SPEC.md at build time
+    field :ampersand_hash, :string         # SHA-256 of ampersand.json at build time
+    field :commit_hash, :string            # Git commit hash (optional)
+
+    timestamps()
+  end
+end
+```
+
+**Invariants:**
+- Builds are immutable after `succeeded` or `failed`
+- `artifact_hash` is computed from the bundle contents — identical specs produce identical hashes (deterministic builds)
+- `{agent_id, version}` is unique — no duplicate version numbers per agent
+
+#### 4.4.3 Test Runs
+
+```elixir
+defmodule Agentelic.Testing.TestRun do
+  use Ecto.Schema
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  schema "test_runs" do
+    belongs_to :agent, Agentelic.Agents.Agent, type: :binary_id
+    belongs_to :build, Agentelic.Builds.Build, type: :binary_id
+    field :status, Ecto.Enum, values: [:pending, :running, :passed, :failed, :error]
+
+    # Results
+    field :total_tests, :integer, default: 0
+    field :passed_tests, :integer, default: 0
+    field :failed_tests, :integer, default: 0
+    field :error_tests, :integer, default: 0
+    field :duration_ms, :integer
+
+    # Individual test results
+    embeds_many :results, Agentelic.Testing.TestResult
+    field :coverage_summary, :map          # Which acceptance criteria were exercised
+
+    timestamps()
+  end
+end
+
+defmodule Agentelic.Testing.TestResult do
+  use Ecto.Schema
+
+  embedded_schema do
+    field :test_name, :string              # Derived from acceptance test text
+    field :given, :string                  # Precondition from SPEC.md
+    field :expected, :string               # Expected behavior from SPEC.md
+    field :actual, :string                 # Actual agent output
+    field :status, Ecto.Enum, values: [:passed, :failed, :error]
+    field :duration_ms, :integer
+    field :tool_calls, {:array, :map}      # Recorded tool invocations
+    field :assertions, {:array, :map}      # Each assertion: {type, expected, actual, passed}
+    field :error_message, :string
+  end
+end
+```
+
+#### 4.4.4 Deployments
+
+```elixir
+defmodule Agentelic.Deploy.Deployment do
+  use Ecto.Schema
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+
+  schema "deployments" do
+    belongs_to :agent, Agentelic.Agents.Agent, type: :binary_id
+    belongs_to :build, Agentelic.Builds.Build, type: :binary_id
+    field :environment, Ecto.Enum, values: [:staging, :canary, :production]
+    field :status, Ecto.Enum, values: [:deploying, :active, :rolled_back, :failed]
+
+    # Target
+    field :runtime_target, :string         # opensentience, cloudflare, agentcore
+    field :runtime_ref, :map               # Provider-specific deployment reference
+
+    # Governance
+    field :autonomy_level, Ecto.Enum, values: [:observe, :advise, :act]
+    field :delegatic_org_id, :string       # Delegatic org reference
+    field :governance_policy_hash, :string # Hash of applied Delegatic policy at deploy time
+
+    # Approval
+    field :approved_by, :string            # Human approver for production deploys
+    field :approval_reason, :string
+
+    timestamps()
+  end
+end
+```
+
+**Invariants:**
+- Production deployments MUST have `approved_by` set (canary and staging do not require approval)
+- Only `passed` test runs can generate deployments
+- `governance_policy_hash` captures the Delegatic policy at deploy time for audit reproducibility
+- Rollback creates a new deployment pointing to a previous build — it does not mutate the original
+
+### 4.5 API Surface (MCP Tools)
+
+Agentelic exposes its build pipeline as MCP tools, enabling AI-assisted agent development:
+
+| Tool | Input | Output | Description |
+|------|-------|--------|-------------|
+| `agent_create` | name, spec_path, ampersand_path, framework | agent_id, status | Create a new agent from a SPEC.md and ampersand.json |
+| `agent_build` | agent_id | build_id, status, errors | Parse spec → generate code → compile → produce artifact |
+| `agent_test` | agent_id, build_id | test_run_id, results | Run deterministic tests derived from acceptance criteria |
+| `agent_deploy` | agent_id, build_id, environment, autonomy_level | deployment_id, status | Deploy to staging/canary/production with governance |
+| `agent_status` | agent_id | agent, latest_build, latest_test, deployments | Full agent status summary |
+| `spec_validate` | spec_path | errors, warnings | Validate SPEC.md against SpecPrompt grammar |
+| `test_explain` | test_run_id, test_index | detailed_trace | Explain why a specific test passed/failed with full tool call trace |
+
+### 4.6 Build Pipeline Specification
+
+The build pipeline is a four-stage process. Each stage has typed input and output:
+
+```
+Stage 1: PARSE
+  Input:  SPEC.md (raw markdown)
+  Output: SpecPrompt.Spec (structured parsed spec — see SpecPrompt data model)
+  Errors: Missing required sections, invalid frontmatter, malformed capability/test lines
+
+Stage 2: GENERATE
+  Input:  SpecPrompt.Spec + ampersand.json + framework template
+  Output: Generated source files (agent module, tool bindings, config)
+  Method: Template-based generation keyed on framework (Elixir, TypeScript, Python)
+  Rules:
+    - Each capability in the spec maps to a tool binding in the generated code
+    - Each constraint maps to a runtime guard or validation check
+    - Architecture section provides structural hints to the generator
+    - The generator is deterministic: same spec + same template version = same output
+
+Stage 3: COMPILE
+  Input:  Generated source files
+  Output: Compiled artifact (mix release, npm bundle, Python wheel)
+  Errors: Syntax errors, type errors, missing dependencies
+
+Stage 4: TEST
+  Input:  Compiled artifact + acceptance tests from SPEC.md
+  Output: TestRun with individual TestResults
+  Method: For each acceptance test:
+    1. Parse Given/When precondition → set up mocked tool state
+    2. Send the precondition text as agent input
+    3. Capture agent output + tool calls
+    4. Validate output against Expected using:
+       - Contains assertions (expected text appears in output)
+       - Tool call assertions (expected tools were called with expected args)
+       - Constraint assertions (no hard constraint was violated)
+       - Negative assertions (forbidden content does not appear)
+```
+
+### 4.7 Deterministic Testing DSL (Normative)
+
+```elixir
+defmodule Agentelic.Test.DSL do
+  @moduledoc """
+  Deterministic testing DSL for agents built from SpecPrompt specs.
+  Tests are generated from acceptance criteria, not hand-written.
+  """
+
+  @type assertion ::
+    {:contains, String.t()} |
+    {:not_contains, String.t()} |
+    {:tool_called, tool_name :: String.t(), args :: map()} |
+    {:tool_not_called, tool_name :: String.t()} |
+    {:escalated, boolean()} |
+    {:escalation_reason, Regex.t()} |
+    {:response_time_ms, :lt, integer()}
+
+  @type mock_spec :: %{
+    tool_name: String.t(),
+    match_args: map(),
+    return: term()
+  }
+
+  @type test_case :: %{
+    name: String.t(),
+    given: String.t(),
+    expected: String.t(),
+    mocks: [mock_spec()],
+    assertions: [assertion()],
+    timeout_ms: integer()
+  }
+
+  @doc "Generate test cases from parsed SpecPrompt acceptance tests."
+  @spec from_spec(SpecPrompt.Spec.t()) :: [test_case()]
+  def from_spec(spec) do
+    for test <- spec.acceptance_tests do
+      %{
+        name: test.given,
+        given: test.given,
+        expected: test.expected,
+        mocks: infer_mocks(test, spec.capabilities),
+        assertions: infer_assertions(test, spec.constraints),
+        timeout_ms: 30_000
+      }
+    end
+  end
+end
+```
+
 ---
 
 ## 5. Ecosystem Integration
