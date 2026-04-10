@@ -465,6 +465,46 @@ end
 
 ---
 
+## 5.1 PULSE Loop Manifest
+
+Agentelic is a **PULSE-conforming loop** under OS-010. As the engineering layer that turns SpecPrompt specs into deployable agents, its loop encodes the **build → test → deploy** rhythm.
+
+**Loop ID:** `agentelic.build_pipeline`
+**Loop name:** Agentelic Build Pipeline Loop
+**Version:** 0.1.0
+**Owner:** agentelic.com
+**Workspace scope:** required
+
+**Phases (5 canonical kinds):**
+
+| Phase ID | Kind | Description |
+|---|---|---|
+| `retrieve_spec` | `retrieve` | Pull SpecPrompt SPEC.md + linked `.ampersand.json` for the agent under build |
+| `route_pipeline` | `route` | Choose pipeline path (parse → generate → compile → package) and tier budget |
+| `act_build` | `act` | Run pipeline stages; gate each stage on deterministic acceptance tests |
+| `learn_build` | `learn` | Update build heuristics from test pass/fail and deployment outcomes |
+| `consolidate_artifacts` | `consolidate` | Garbage-collect failed builds, archive shipped artifacts, prune stale staging deployments |
+
+**Closure:** `consolidate_artifacts → retrieve_spec` via Supabase, guarantee `eventual`.
+
+**Cadence:** `event` (spec change, manual build trigger, scheduled CI). Fallback `manual`.
+
+**Substrates:**
+- `memory`: `graphonomous://workspace/{ws_id}` (build history, learned heuristics)
+- `policy`: `delegatic://workspace/{ws_id}` (deploy gates, compliance checks)
+- `audit`: `delegatic://workspace/{ws_id}/audit`
+- `auth`: `open_sentience://workspace/{ws_id}`
+- `transport`: `mcp`
+- `time`: optional
+
+**Invariants enabled:** `phase_atomicity`, `feedback_immutability`, `append_only_audit`, `outcome_grounding`, `trace_id_propagation`.
+
+**Cross-loop connections:**
+- `outcome_to_prism` — emits `OutcomeSignal` (deploy success/regression) from `learn_build` to `prism.benchmark.observe`
+- `published_to_fleetprompt` — emits `ConsolidationEvent` (artifact shipped) from `consolidate_artifacts` to `fleetprompt.publish`
+
+---
+
 ## 6. Gap Analysis & Competitive Landscape
 
 ### 6.1 Market Gap: The Demo-to-Production Gap
