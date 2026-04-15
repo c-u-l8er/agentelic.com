@@ -190,11 +190,15 @@ defmodule Agentelic.Agents.Agent do
 
   @primary_key {:id, :binary_id, autogenerate: true}
 
-  schema "agents" do
+  schema "agentelic.agents" do
     field :name, :string
     field :slug, :string
     field :description, :string
     field :status, Ecto.Enum, values: [:draft, :building, :testing, :deployable, :deployed, :archived]
+
+    # Multi-tenancy (shared Supabase ecosystem)
+    belongs_to :workspace, Amp.Workspaces.Workspace, type: :binary_id  # amp.workspaces
+    field :user_id, :binary_id             # amp.profiles (Supabase Auth) — agent owner
 
     # Spec linkage
     field :spec_path, :string              # Path to SPEC.md (relative to project root)
@@ -205,10 +209,10 @@ defmodule Agentelic.Agents.Agent do
     # Build metadata
     field :framework, :string              # e.g. "elixir", "typescript", "python"
     field :runtime_target, :string         # e.g. "opensentience", "cloudflare", "agentcore"
+    field :product_type, Ecto.Enum, values: [:mcp_server, :agent, :library, :website, :cli]
     field :last_build_at, :utc_datetime_usec
     field :last_test_at, :utc_datetime_usec
 
-    belongs_to :user, Agentelic.Accounts.User, type: :binary_id
     has_many :builds, Agentelic.Builds.Build
     has_many :test_runs, Agentelic.Testing.TestRun
     has_many :deployments, Agentelic.Deploy.Deployment
@@ -253,7 +257,10 @@ defmodule Agentelic.Builds.Build do
     # Provenance
     field :spec_hash, :string              # SHA-256 of SPEC.md at build time
     field :ampersand_hash, :string         # SHA-256 of ampersand.json at build time
+    field :template_version, :string       # semver of framework template used (pinned for determinism)
+    field :template_hash, :string          # SHA-256 of template bundle at build time
     field :commit_hash, :string            # Git commit hash (optional)
+    field :compiled_tests_hash, :string    # SHA-256 of SpecPrompt compiled tests used
 
     timestamps()
   end
@@ -262,8 +269,12 @@ end
 
 **Invariants:**
 - Builds are immutable after `succeeded` or `failed`
-- `artifact_hash` is computed from the bundle contents — identical specs produce identical hashes (deterministic builds)
+- `artifact_hash` is computed from the bundle contents — identical `{spec_hash, ampersand_hash, template_hash}` produce identical `artifact_hash` (deterministic builds)
 - `{agent_id, version}` is unique — no duplicate version numbers per agent
+- `template_version` must be pinned — no floating "latest" in deterministic builds
+- Templates are immutable once published: new versions require new template records, never in-place updates
+- `{template_version, template_hash}` is globally unique: same published version always has same hash
+- Agent-level template pins override workspace defaults; workspace pins override global defaults (3-tier hierarchy)
 
 #### 4.4.3 Test Runs
 
@@ -273,9 +284,11 @@ defmodule Agentelic.Testing.TestRun do
 
   @primary_key {:id, :binary_id, autogenerate: true}
 
-  schema "test_runs" do
+  schema "agentelic.test_runs" do
     belongs_to :agent, Agentelic.Agents.Agent, type: :binary_id
     belongs_to :build, Agentelic.Builds.Build, type: :binary_id
+    field :workspace_id, :binary_id             # amp.workspaces (for RLS + audit)
+    field :compiled_tests_hash, :string         # SHA-256 of SpecPrompt compiled tests used
     field :status, Ecto.Enum, values: [:pending, :running, :passed, :failed, :error]
 
     # Results
@@ -318,9 +331,10 @@ defmodule Agentelic.Deploy.Deployment do
 
   @primary_key {:id, :binary_id, autogenerate: true}
 
-  schema "deployments" do
+  schema "agentelic.deployments" do
     belongs_to :agent, Agentelic.Agents.Agent, type: :binary_id
     belongs_to :build, Agentelic.Builds.Build, type: :binary_id
+    field :workspace_id, :binary_id             # amp.workspaces (for RLS)
     field :environment, Ecto.Enum, values: [:staging, :canary, :production]
     field :status, Ecto.Enum, values: [:deploying, :active, :rolled_back, :failed]
 
@@ -347,6 +361,8 @@ end
 - Only `passed` test runs can generate deployments
 - `governance_policy_hash` captures the Delegatic policy at deploy time for audit reproducibility
 - Rollback creates a new deployment pointing to a previous build — it does not mutate the original
+- `user_id` on agents is audit-only (created_by at agent creation); RLS uses `workspace_id`, not `user_id`
+- `approved_by` on deployments must be validated as a workspace admin via `amp.workspace_members`
 
 ### 4.5 API Surface (MCP Tools)
 
@@ -359,6 +375,8 @@ Agentelic exposes its build pipeline as MCP tools, enabling AI-assisted agent de
 | `agent_test` | agent_id, build_id | test_run_id, results | Run deterministic tests derived from acceptance criteria |
 | `agent_deploy` | agent_id, build_id, environment, autonomy_level | deployment_id, status | Deploy to staging/canary/production with governance |
 | `agent_status` | agent_id | agent, latest_build, latest_test, deployments | Full agent status summary |
+| `template_list` | framework, product_type | [template_version, name, hash] | List compatible templates for a given framework + product type |
+| `template_pin` | agent_id, template_version | updated_at | Pin agent to a specific template version (overrides workspace default) |
 | `spec_validate` | spec_path | errors, warnings | Validate SPEC.md against SpecPrompt grammar |
 | `test_explain` | test_run_id, test_index | detailed_trace | Explain why a specific test passed/failed with full tool call trace |
 
@@ -372,8 +390,17 @@ Stage 1: PARSE
   Output: SpecPrompt.Spec (structured parsed spec — see SpecPrompt data model)
   Errors: Missing required sections, invalid frontmatter, malformed capability/test lines
 
+Stage 1.5: TEST INTAKE (new — bridges SpecPrompt compiled tests)
+  Input:  SpecPrompt.CompiledTest[] (from spec.compiled_tests or specprompt test-compile)
+  Output: Executable test suite in Agentelic.Test.DSL format
+  Rules:
+    - Only approved compiled tests (approved == true) are used
+    - If no compiled tests exist, fall back to LLM-assisted compilation (same as specprompt test-compile)
+    - Compiled tests are cached by {spec_hash, test_index} — unchanged tests reuse prior compilations
+    - compiled_tests_hash is recorded on the Build for full provenance
+
 Stage 2: GENERATE
-  Input:  SpecPrompt.Spec + ampersand.json + framework template
+  Input:  SpecPrompt.Spec + ampersand.json + framework template (pinned version)
   Output: Generated source files (agent module, tool bindings, config)
   Method: Template-based generation keyed on framework (Elixir, TypeScript, Python)
   Rules:
@@ -381,6 +408,7 @@ Stage 2: GENERATE
     - Each constraint maps to a runtime guard or validation check
     - Architecture section provides structural hints to the generator
     - The generator is deterministic: same spec + same template version = same output
+    - Template version is pinned and recorded in Build.template_version + Build.template_hash
 
 Stage 3: COMPILE
   Input:  Generated source files
@@ -487,7 +515,15 @@ Agentelic is a **PULSE-conforming loop** under OS-010. As the engineering layer 
 
 **Closure:** `consolidate_artifacts → retrieve_spec` via Supabase, guarantee `eventual`.
 
-**Cadence:** `event` (spec change, manual build trigger, scheduled CI). Fallback `manual`.
+**Cadence:** `event` (spec change via SpecPrompt `ConsolidationEvent`, manual build trigger, scheduled CI, GitHub webhook). Fallback `manual`.
+
+**Pipeline trigger intake:** Agentelic listens for dark factory trigger events:
+1. **Supabase Realtime** (recommended): Listen on `spec.specs` inserts/updates for workspace-scoped specs
+2. **CloudEvents webhook**: Accept `org.pulse.consolidation_event` from SpecPrompt at `POST /api/pipeline/trigger`
+3. **GitHub webhook**: Push events on spec repos trigger builds at `POST /api/pipeline/github`
+4. **MCP tool**: `agent_build` can be called directly by agents or RuneFort chat
+
+On trigger, Agentelic validates the `source_hash` matches, pulls the spec + compiled tests, and runs the full pipeline. On completion, emits `ConsolidationEvent` to FleetPrompt via the same transport.
 
 **Substrates:**
 - `memory`: `graphonomous://workspace/{ws_id}` (build history, learned heuristics)
@@ -502,6 +538,66 @@ Agentelic is a **PULSE-conforming loop** under OS-010. As the engineering layer 
 **Cross-loop connections:**
 - `outcome_to_prism` — emits `OutcomeSignal` (deploy success/regression) from `learn_build` to `prism.benchmark.observe`
 - `published_to_fleetprompt` — emits `ConsolidationEvent` (artifact shipped) from `consolidate_artifacts` to `fleetprompt.publish`
+
+### 5.2 Framework Template Versioning
+
+Framework templates are the code generation blueprints that turn a parsed spec into source files. Template versioning is critical for deterministic builds — the same `{spec_hash, template_hash}` must always produce the same `artifact_hash`.
+
+**Template storage:** Templates live in a git repository (`agentelic-templates`) with semantic versioning:
+
+```
+agentelic-templates/
+├── elixir/
+│   ├── mcp-server/          # MCP server template
+│   │   ├── template.json    # Template manifest (version, framework, product_type, dependencies)
+│   │   ├── mix.exs.eex      # Elixir template files
+│   │   ├── lib/agent.ex.eex
+│   │   └── test/agent_test.exs.eex
+│   ├── agent/               # Standalone agent template
+│   └── library/             # Hex package template
+├── typescript/
+│   ├── mcp-server/          # Node.js MCP server template
+│   ├── sveltekit/           # SvelteKit app template
+│   └── library/             # npm package template
+├── python/
+│   ├── mcp-server/
+│   └── library/
+└── CHANGELOG.md
+```
+
+**Template manifest:**
+```json
+{
+  "name": "elixir/mcp-server",
+  "version": "1.2.0",
+  "framework": "elixir",
+  "product_type": "mcp_server",
+  "min_spec_version": "1.0.0",
+  "dependencies": {"elixir": "~> 1.17", "otp": "~> 27.0"},
+  "hash": "sha256:..."
+}
+```
+
+**Version pinning rules:**
+- Each Build records `template_version` and `template_hash`
+- Templates are immutable once published (like FleetPrompt manifests)
+- New template versions require new builds — no in-place updates
+- Template selection: `{framework, product_type}` → latest compatible template version (or explicit pin via `agent.template_pin`)
+- Workspace-level template pins are supported for enterprise environments
+
+### 5.3 Product Type Templates
+
+Different product types (MCP servers, apps, websites, libraries) follow different build pipelines but share the same 4-stage structure:
+
+| Product Type | Framework Options | Build Output | Deploy Target |
+|---|---|---|---|
+| `mcp_server` | Elixir, TypeScript, Python | BEAM release / npm bundle / wheel | Fly.io, OpenSentience |
+| `agent` | Elixir, TypeScript, Python | Executable agent | OpenSentience |
+| `library` | Elixir, TypeScript, Python | Hex package / npm package / PyPI wheel | Package registry |
+| `website` | TypeScript (SvelteKit) | Static site / SSR app | Cloudflare Pages |
+| `cli` | Elixir, TypeScript, Python | Escript / npm binary / pip binary | Package registry |
+
+Each product type has its own template set, but all templates consume the same `SpecPrompt.Spec` input. The generator adapts based on `product_type` — an MCP server template generates tool bindings, while a website template generates routes and components.
 
 ---
 
@@ -565,8 +661,9 @@ This is now the most-cited problem in the industry. LangChain's 2026 survey show
 
 | Phase | Weeks | Deliverables |
 |-------|-------|-------------|
-| 0: Foundation | 1–6 | Spec parser, basic code generation, CLI tool |
-| 1: Testing | 7–12 | Deterministic test framework, mocking system, regression runner |
+| 0: Foundation | 1–6 | Spec parser, basic code generation, CLI tool, Supabase schema + RLS |
+| 0.5: Templates | 6–8 | Template repo + manifest schema, version pinning, immutability enforcement, product type matrix |
+| 1: Testing | 9–14 | Deterministic test framework, compiled test intake from SpecPrompt, mocking system, regression runner |
 | 2: Studio | 13–20 | Web UI for spec editing, test running, deployment |
 | 3: Deploy | 21–26 | OpenSentience deployment integration, staging/prod, canary |
 | 4: Enterprise | 27–36 | SSO, compliance templates, audit exports, managed instances |
