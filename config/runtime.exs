@@ -40,10 +40,11 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :agentelic, Agentelic.Repo,
-    # ssl: true,
+    ssl: [verify: :verify_none],
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6,
+    prepare: :unnamed,
     after_connect: {Postgrex, :query!, ["SET search_path TO agentelic,amp,public", []]}
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
