@@ -1,0 +1,11 @@
+{
+  "name": "typescript/mcp-server",
+  "version": "0.1.0",
+  "framework": "typescript",
+  "product_type": "mcp_server",
+  "min_spec_version": "1.0.0",
+  "dependencies": {
+    "node": ">=20.0.0",
+    "typescript": "~5.4"
+  }
+}

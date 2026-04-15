@@ -1,0 +1,16 @@
+{
+  "name": "<%= agent_name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") %>",
+  "version": "<%= version %>",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/agent.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}

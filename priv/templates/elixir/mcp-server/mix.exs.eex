@@ -1,0 +1,27 @@
+defmodule <%= agent_module %>.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :<%= agent_name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "_") %>,
+      version: "<%= version %>",
+      elixir: "~> 1.17",
+      start_permanent: Mix.env() == :prod,
+      deps: deps()
+    ]
+  end
+
+  def application do
+    [
+      extra_applications: [:logger],
+      mod: {<%= agent_module %>.Application, []}
+    ]
+  end
+
+  defp deps do
+    [
+      {:jason, "~> 1.4"},
+      {:bandit, "~> 1.5"}
+    ]
+  end
+end

@@ -1,0 +1,11 @@
+{
+  "name": "elixir/mcp-server",
+  "version": "0.1.0",
+  "framework": "elixir",
+  "product_type": "mcp_server",
+  "min_spec_version": "1.0.0",
+  "dependencies": {
+    "elixir": "~> 1.17",
+    "otp": "~> 27.0"
+  }
+}

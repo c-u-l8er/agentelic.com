@@ -224,14 +224,14 @@ agentelic.com/
 
 ## Success Criteria
 
-- [ ] `agent_create` creates agent from customer-support SPEC.md
-- [ ] `agent_build` runs the 4-stage pipeline and produces a build artifact
-- [ ] Same `{spec_hash, template_hash}` always produces same `artifact_hash` (deterministic)
-- [ ] `agent_test` runs deterministic tests with mocked tool calls and produces pass/fail results
-- [ ] Compiled test intake loads approved SpecPrompt.CompiledTest[] and converts to Test.DSL format
-- [ ] Template pinning works at agent-level, workspace-level, and global default
-- [ ] MCP server discovers tools via `tools/list` and executes all 9 tools
-- [ ] Pipeline triggers fire on SpecPrompt ConsolidationEvent (all 3 transports)
-- [ ] Build success emits ConsolidationEvent to FleetPrompt
-- [ ] Production deployment requires `approved_by` validation against workspace admin
-- [ ] Supabase migration applies cleanly alongside existing `amp.*`, `kag.*`, `rune.*` schemas
+- [x] `agent_create` creates agent from customer-support SPEC.md
+- [x] `agent_build` runs the 4-stage pipeline and produces a build artifact
+- [x] Same `{spec_hash, template_hash}` always produces same `artifact_hash` (deterministic)
+- [x] `agent_test` runs deterministic tests with mocked tool calls and produces pass/fail results
+- [x] Compiled test intake loads approved SpecPrompt.CompiledTest[] and converts to Test.DSL format
+- [x] Template pinning works at agent-level, workspace-level, and global default
+- [x] MCP server discovers tools via `tools/list` and executes all 9 tools
+- [x] Pipeline triggers fire on SpecPrompt ConsolidationEvent (all 3 transports)
+- [x] Build success emits ConsolidationEvent to FleetPrompt
+- [x] Production deployment requires `approved_by` validation against workspace admin
+- [x] Supabase migration applies cleanly alongside existing `amp.*`, `kag.*`, `rune.*` schemas
