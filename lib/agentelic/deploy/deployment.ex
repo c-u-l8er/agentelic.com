@@ -13,12 +13,13 @@ defmodule Agentelic.Deploy.Deployment do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @schema_prefix "agentelic"
 
   @environments [:staging, :canary, :production]
   @statuses [:deploying, :active, :rolled_back, :failed]
   @autonomy_levels [:observe, :advise, :act]
 
-  schema "agentelic.deployments" do
+  schema "deployments" do
     belongs_to :agent, Agentelic.Agents.Agent
     belongs_to :build, Agentelic.Builds.Build
 

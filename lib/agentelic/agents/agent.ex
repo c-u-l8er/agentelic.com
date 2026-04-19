@@ -12,6 +12,7 @@ defmodule Agentelic.Agents.Agent do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @schema_prefix "agentelic"
 
   @statuses [:draft, :building, :testing, :deployable, :deployed, :archived]
   @product_types [:mcp_server, :agent, :library, :website, :cli]
@@ -25,7 +26,7 @@ defmodule Agentelic.Agents.Agent do
     archived: []
   }
 
-  schema "agentelic.agents" do
+  schema "agents" do
     field :name, :string
     field :slug, :string
     field :description, :string

@@ -11,10 +11,11 @@ defmodule Agentelic.Testing.TestRun do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @schema_prefix "agentelic"
 
   @statuses [:pending, :running, :passed, :failed, :error]
 
-  schema "agentelic.test_runs" do
+  schema "test_runs" do
     belongs_to :agent, Agentelic.Agents.Agent
     belongs_to :build, Agentelic.Builds.Build
 
@@ -35,7 +36,7 @@ defmodule Agentelic.Testing.TestRun do
 
     field :coverage_summary, :map
 
-    timestamps(type: :utc_datetime_usec, inserted_at: :created_at)
+    timestamps(type: :utc_datetime_usec, inserted_at: :created_at, updated_at: false)
   end
 
   @required_fields [:agent_id, :build_id, :workspace_id]

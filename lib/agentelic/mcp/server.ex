@@ -11,6 +11,7 @@ defmodule Agentelic.MCP.Server do
   alias Agentelic.MCP.Tools
 
   @mcp_version "2025-03-26"
+  @server_version Mix.Project.config()[:version]
 
   @doc """
   Handle an incoming JSON-RPC request.
@@ -53,7 +54,7 @@ defmodule Agentelic.MCP.Server do
       "protocolVersion" => @mcp_version,
       "serverInfo" => %{
         "name" => "agentelic",
-        "version" => Agentelic.MixProject.project()[:version]
+        "version" => @server_version
       },
       "capabilities" => %{
         "tools" => %{"listChanged" => false}

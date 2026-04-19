@@ -13,10 +13,11 @@ defmodule Agentelic.Builds.Build do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @schema_prefix "agentelic"
 
   @statuses [:pending, :parsing, :generating, :compiling, :testing, :succeeded, :failed]
 
-  schema "agentelic.builds" do
+  schema "builds" do
     belongs_to :agent, Agentelic.Agents.Agent
 
     field :workspace_id, :binary_id

@@ -55,37 +55,56 @@ defmodule Agentelic.Pipeline.Compiler do
   end
 
   defp run_build("elixir", build_dir) do
-    case System.cmd("mix", ["compile", "--warnings-as-errors"],
-           cd: build_dir,
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> {:ok, output}
-      {output, _} -> {:error, "Compilation failed:\n#{output}"}
+    # In-process syntax validation via Code.string_to_quoted/1.
+    # This avoids requiring `mix` in the release container and keeps the
+    # compile stage deterministic: same files → same result, no shell-out.
+    files = Path.wildcard(Path.join(build_dir, "**/*.{ex,exs}"))
+
+    errors =
+      Enum.flat_map(files, fn path ->
+        case path |> File.read!() |> Code.string_to_quoted(file: path) do
+          {:ok, _ast} -> []
+          {:error, {meta, msg, token}} -> ["#{path}:#{inspect(meta)} #{inspect(msg)} #{inspect(token)}"]
+        end
+      end)
+
+    case errors do
+      [] -> {:ok, "Validated #{length(files)} Elixir source file(s)"}
+      _ -> {:error, "Syntax errors:\n" <> Enum.join(errors, "\n")}
     end
   end
 
   defp run_build("typescript", build_dir) do
-    case System.cmd("npm", ["run", "build"],
-           cd: build_dir,
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> {:ok, output}
-      {output, _} -> {:error, "Build failed:\n#{output}"}
-    end
+    safe_cmd("npm", ["run", "build"], build_dir)
   end
 
   defp run_build("python", build_dir) do
-    case System.cmd("python", ["-m", "py_compile", "."],
-           cd: build_dir,
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> {:ok, output}
-      {output, _} -> {:error, "Build failed:\n#{output}"}
-    end
+    safe_cmd("python", ["-m", "py_compile", "."], build_dir)
   end
 
   defp run_build(framework, _build_dir) do
     {:error, "Unsupported framework: #{framework}"}
+  end
+
+  # Wrap System.cmd so a missing binary (ENOENT in a release container) or any
+  # other shell-out failure becomes a tagged error instead of a Task crash that
+  # leaves the build stuck in :compiling.
+  defp safe_cmd(bin, args, build_dir) do
+    {out, status} = System.cmd(bin, args, cd: build_dir, stderr_to_stdout: true)
+
+    case status do
+      0 -> {:ok, out}
+      _ -> {:error, "#{bin} #{Enum.join(args, " ")} failed (exit #{status}):\n#{out}"}
+    end
+  rescue
+    e in ErlangError ->
+      case e.original do
+        :enoent -> {:error, "#{bin} not available in build environment"}
+        other -> {:error, "#{bin} failed: #{inspect(other)}"}
+      end
+
+    e ->
+      {:error, "#{bin} failed: #{Exception.message(e)}"}
   end
 
   defp extract_warnings(output) do

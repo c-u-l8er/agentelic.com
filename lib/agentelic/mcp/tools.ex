@@ -16,6 +16,8 @@ defmodule Agentelic.MCP.Tools do
 
   import Ecto.Query
 
+  @uuid_re ~r/\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\z/
+
   @doc "Return all tool definitions for tools/list."
   @spec definitions() :: [map()]
   def definitions do
@@ -41,12 +43,42 @@ defmodule Agentelic.MCP.Tools do
         }
       },
       %{
+        "name" => "agent_ensure",
+        "description" =>
+          "Find-or-create an agent by slug within a workspace. Returns agent_id. Safe to call repeatedly — idempotent per (workspace_id, slug).",
+        "inputSchema" => %{
+          "type" => "object",
+          "properties" => %{
+            "name" => %{"type" => "string", "description" => "Human-readable name"},
+            "slug" => %{
+              "type" => "string",
+              "description" =>
+                "Slug (derived from name when omitted). Lookup key within a workspace."
+            },
+            "framework" => %{"type" => "string", "enum" => ["elixir", "typescript", "python"]},
+            "product_type" => %{
+              "type" => "string",
+              "enum" => ["mcp_server", "agent", "library", "website", "cli"]
+            },
+            "spec_path" => %{"type" => "string"},
+            "workspace_id" => %{"type" => "string"},
+            "user_id" => %{"type" => "string"}
+          },
+          "required" => ["workspace_id", "user_id"]
+        }
+      },
+      %{
         "name" => "agent_build",
         "description" => "Run 4-stage build pipeline for an agent",
         "inputSchema" => %{
           "type" => "object",
           "properties" => %{
-            "agent_id" => %{"type" => "string"}
+            "agent_id" => %{"type" => "string"},
+            "spec_content" => %{
+              "type" => "string",
+              "description" =>
+                "Optional inline spec. Use when the build server cannot read agent.spec_path from its local filesystem."
+            }
           },
           "required" => ["agent_id"]
         }
@@ -143,10 +175,13 @@ defmodule Agentelic.MCP.Tools do
   def call("agent_create", args) do
     slug =
       args
-      |> Map.get("name", "")
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/, "-")
-      |> String.trim("-")
+      |> Map.get("slug")
+      |> case do
+        nil -> Map.get(args, "name", "")
+        "" -> Map.get(args, "name", "")
+        s -> s
+      end
+      |> slugify()
 
     changeset =
       Agent.changeset(%Agent{}, %{
@@ -171,14 +206,82 @@ defmodule Agentelic.MCP.Tools do
     end
   end
 
-  def call("agent_build", %{"agent_id" => agent_id}) do
-    case Repo.get(Agent, agent_id) do
+  def call("agent_ensure", args) do
+    workspace_id = Map.get(args, "workspace_id")
+    user_id = Map.get(args, "user_id")
+
+    name = Map.get(args, "name") || Map.get(args, "slug") || "agent"
+    slug = args |> Map.get("slug", name) |> slugify()
+
+    cond do
+      workspace_id in [nil, ""] ->
+        {:error, -32602, "workspace_id is required"}
+
+      user_id in [nil, ""] ->
+        {:error, -32602, "user_id is required"}
+
+      true ->
+        existing =
+          if is_binary(workspace_id) and Regex.match?(@uuid_re, workspace_id) do
+            Repo.one(from a in Agent, where: a.workspace_id == ^workspace_id and a.slug == ^slug)
+          else
+            nil
+          end
+
+        case existing do
+          %Agent{} = agent ->
+            {:ok,
+             %{
+               "agent_id" => agent.id,
+               "slug" => agent.slug,
+               "status" => to_string(agent.status),
+               "created" => false
+             }}
+
+          nil ->
+            changeset =
+              Agent.changeset(%Agent{}, %{
+                name: name,
+                slug: slug,
+                spec_path: Map.get(args, "spec_path", "inline"),
+                framework: Map.get(args, "framework", "elixir"),
+                product_type: safe_atom(Map.get(args, "product_type", "agent")),
+                workspace_id: workspace_id,
+                user_id: user_id
+              })
+
+            case Repo.insert(changeset) do
+              {:ok, agent} ->
+                {:ok,
+                 %{
+                   "agent_id" => agent.id,
+                   "slug" => agent.slug,
+                   "status" => to_string(agent.status),
+                   "created" => true
+                 }}
+
+              {:error, changeset} ->
+                {:error, -32602, "Ensure failed: #{format_changeset_errors(changeset)}"}
+            end
+        end
+    end
+  end
+
+  def call("agent_build", %{"agent_id" => agent_id} = args) do
+    case safe_get(Agent, agent_id) do
       nil ->
         {:error, -32602, "Agent not found: #{agent_id}"}
 
       agent ->
-        # Read spec content
-        case File.read(agent.spec_path) do
+        # Prefer inline spec_content when provided (remote callers can't read
+        # the server's filesystem); fall back to agent.spec_path otherwise.
+        spec_read_result =
+          case Map.get(args, "spec_content") do
+            content when is_binary(content) and content != "" -> {:ok, content}
+            _ -> File.read(agent.spec_path || "")
+          end
+
+        case spec_read_result do
           {:ok, spec_content} ->
             # Create build record
             build_attrs = %{
@@ -190,14 +293,39 @@ defmodule Agentelic.MCP.Tools do
 
             case Repo.insert(Build.changeset(%Build{}, build_attrs)) do
               {:ok, build} ->
-                # Run pipeline asynchronously
+                # Run pipeline asynchronously. Wrap in try/rescue so a stage
+                # crash (e.g. missing `mix` binary) marks the build failed
+                # rather than leaving it stuck in an intermediate status.
                 Task.start(fn ->
-                  Orchestrator.run(build,
-                    spec_content: spec_content,
-                    framework: agent.framework,
-                    product_type: agent.product_type,
-                    template_pin: agent.template_pin
-                  )
+                  try do
+                    Orchestrator.run(build,
+                      spec_content: spec_content,
+                      framework: agent.framework,
+                      product_type: agent.product_type,
+                      template_pin: agent.template_pin
+                    )
+                  rescue
+                    e ->
+                      require Logger
+
+                      Logger.error(
+                        "Pipeline crashed for build #{build.id}: #{Exception.format(:error, e, __STACKTRACE__)}"
+                      )
+
+                      Repo.get(Build, build.id)
+                      |> case do
+                        nil ->
+                          :ok
+
+                        current ->
+                          current
+                          |> Build.stage_changeset(%{
+                            status: :failed,
+                            error_message: "Pipeline crashed: #{Exception.message(e)}"
+                          })
+                          |> Repo.update()
+                      end
+                  end
                 end)
 
                 {:ok, %{"build_id" => build.id, "status" => "pending"}}
@@ -213,8 +341,8 @@ defmodule Agentelic.MCP.Tools do
   end
 
   def call("agent_test", %{"agent_id" => agent_id, "build_id" => build_id}) do
-    with %Agent{} = agent <- Repo.get(Agent, agent_id),
-         %Build{status: :succeeded} = build <- Repo.get(Build, build_id) do
+    with %Agent{} = agent <- safe_get(Agent, agent_id),
+         %Build{status: :succeeded} = build <- safe_get(Build, build_id) do
       # Load spec to generate/load test cases
       spec_content = if agent.spec_path, do: File.read(agent.spec_path), else: {:error, :nospec}
 
@@ -274,7 +402,7 @@ defmodule Agentelic.MCP.Tools do
   def call("agent_deploy", args) do
     agent_id = Map.get(args, "agent_id")
 
-    case Repo.get(Agent, agent_id) do
+    case safe_get(Agent, agent_id) do
       nil ->
         {:error, -32602, "Agent not found: #{agent_id}"}
 
@@ -300,15 +428,18 @@ defmodule Agentelic.MCP.Tools do
   end
 
   def call("agent_status", %{"agent_id" => agent_id}) do
-    case Repo.get(Agent, agent_id) do
+    case safe_get(Agent, agent_id) do
       nil ->
         {:error, -32602, "Agent not found: #{agent_id}"}
 
       agent ->
         agent = Repo.preload(agent, [:builds, :test_runs, :deployments])
 
-        latest_build = agent.builds |> Enum.sort_by(& &1.created_at, :desc) |> List.first()
-        latest_test = agent.test_runs |> Enum.sort_by(& &1.created_at, :desc) |> List.first()
+        # NOTE: `:desc` alone does structural comparison on DateTime, which produces
+        # the WRONG order (oldest first). Must use `{:desc, DateTime}` so the
+        # comparator uses DateTime.compare/2.
+        latest_build = agent.builds |> Enum.sort_by(& &1.created_at, {:desc, DateTime}) |> List.first()
+        latest_test = agent.test_runs |> Enum.sort_by(& &1.created_at, {:desc, DateTime}) |> List.first()
 
         {:ok,
          %{
@@ -353,7 +484,7 @@ defmodule Agentelic.MCP.Tools do
   end
 
   def call("template_pin", %{"agent_id" => agent_id, "template_version" => version}) do
-    case Repo.get(Agent, agent_id) do
+    case safe_get(Agent, agent_id) do
       nil ->
         {:error, -32602, "Agent not found"}
 
@@ -397,7 +528,7 @@ defmodule Agentelic.MCP.Tools do
   end
 
   def call("test_explain", %{"test_run_id" => test_run_id, "test_index" => index}) do
-    case Repo.get(TestRun, test_run_id) do
+    case safe_get(TestRun, test_run_id) do
       nil ->
         {:error, -32602, "Test run not found: #{test_run_id}"}
 
@@ -483,6 +614,15 @@ defmodule Agentelic.MCP.Tools do
     |> Enum.join("; ")
   end
 
+  defp slugify(str) when is_binary(str) do
+    str
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+    |> String.trim("-")
+  end
+
+  defp slugify(_), do: ""
+
   defp safe_atom(nil), do: nil
   defp safe_atom(str) when is_atom(str), do: str
 
@@ -490,5 +630,18 @@ defmodule Agentelic.MCP.Tools do
     String.to_existing_atom(str)
   rescue
     ArgumentError -> String.to_atom(str)
+  end
+
+  # Look up a record by UUID string, returning nil (not raising) on
+  # malformed / non-UUID input so that MCP callers can treat it as "not found"
+  # instead of an HTTP 400 cast crash.
+  defp safe_get(_schema, id) when not is_binary(id), do: nil
+
+  defp safe_get(schema, id) do
+    if Regex.match?(@uuid_re, id) do
+      Repo.get(schema, id)
+    else
+      nil
+    end
   end
 end
