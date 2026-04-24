@@ -20,7 +20,7 @@ defmodule Agentelic.MCP.ServerTest do
       assert response["result"]["serverInfo"]["name"] == "agentelic"
     end
 
-    test "responds to tools/list with all 9 tools" do
+    test "responds to tools/list with all 10 tools" do
       request = %{
         "jsonrpc" => "2.0",
         "method" => "tools/list",
@@ -32,10 +32,11 @@ defmodule Agentelic.MCP.ServerTest do
 
       assert response["id"] == 2
       tools = response["result"]["tools"]
-      assert length(tools) == 9
+      assert length(tools) == 10
 
       tool_names = Enum.map(tools, & &1["name"])
       assert "agent_create" in tool_names
+      assert "agent_ensure" in tool_names
       assert "agent_build" in tool_names
       assert "agent_test" in tool_names
       assert "agent_deploy" in tool_names
