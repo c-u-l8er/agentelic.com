@@ -2,6 +2,8 @@
 
 > **Build agents like software. Spec-driven. Tested. Deployed.**
 
+> **Part of the [&] Protocol stack** · [Ecosystem overview](../../ECOSYSTEM.md) · [Three-protocol stack](../../PULSE/docs/THREE_PROTOCOL_STACK.md) · [Stack status](../../STACK_COMPLETION.md)
+
 Welcome to the documentation hub for **Agentelic** — a premium, enterprise-grade
 agent builder that brings software engineering discipline to AI agent development.
 
@@ -133,6 +135,8 @@ spec/README
 ## Project Links
 
 - **Spec:** [Technical Specification](spec/README.md)
+- **User stories:** [Agentelic User Stories](ux/user-stories.md)
+- **Build prompt:** [Agentelic Implementation Build Prompt](../prompts/BUILD.md)
 - **[&] Protocol ecosystem:** `AmpersandBoxDesign/`
 
 ---
