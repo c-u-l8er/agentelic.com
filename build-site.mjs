@@ -14,7 +14,7 @@
 // dated, and stated as an observation.
 // ===========================================================================
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,8 +62,26 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(S.probes?.measured_at || "")) errors.push("probe
 for (const f of ["statement", "source", "limit"]) if (!S.status?.[f]) errors.push(`status.${f} is missing`);
 for (const f of ["next_rung", "requires"]) if (!S.advance?.[f]) errors.push(`advance.${f} is missing`);
 if (S.advance?.next_rung && !RUNGS.includes(S.advance.next_rung)) errors.push(`advance.next_rung "${S.advance.next_rung}" is not a rung`);
-if (S.tier === 4 && S.layer) errors.push("a tier-4 surface may not claim a layer — attribution, not membership (SHELL.md §1)");
-if (S.tier !== 4 && !S.layer) errors.push("a non-tier-4 band needs a layer word");
+// The band, checked in BOTH directions (SHELL.md r5). Refusing a layer claim a
+// tier has not earned is only half of it: a tier-2 band that quietly DROPS its
+// layer word is the same defect inverted, and it passed until someone tried it.
+// The entitlement comes from amp-nav, which records `layer` on place-2 entries
+// only — place 3 is the specification tier and place 4 is outside the story.
+if (![2, 3, 4].includes(S.tier)) errors.push(`tier must be 2, 3 or 4 (amp-nav place), got ${S.tier}`);
+if (S.tier === 2 && !S.layer) errors.push("a place-2 surface MUST print its layer word — dropping it is the tier-4 defect inverted (SHELL.md r5)");
+if (S.tier !== 2 && S.layer) errors.push(`a place-${S.tier} surface may not claim the layer "${S.layer}" — amp-nav records a layer for place-2 entries only (SHELL.md §1)`);
+if (S.tier === 3 && !S.spec_url) errors.push("a place-3 band names the surface as a specification and must link the spec amp-nav records for it");
+
+// r5: the gate that WITNESSES the rung. "Any pending gate blocks live_deployed"
+// is too blunt — independent_build is pending forever by construction, so a
+// surface could never advance at all. Name which gate carries the rung; the
+// others stay pending without blocking it.
+if (!S.rung_witness) errors.push("surface has no rung_witness — name the gate that witnesses the rung (SHELL.md r5)");
+else {
+  const w = S.gates?.[S.rung_witness];
+  if (!w) errors.push(`rung_witness "${S.rung_witness}" is not a gate in this record`);
+  else if (w.status !== "approved") errors.push(`rung_witness "${S.rung_witness}" is ${w.status} — the rung ${S.surface_rung} has no approved witness`);
+}
 
 // Every capability carries a real rung, and the strongest one is the surface's.
 (S.built?.rows || []).forEach((b, i) => {
@@ -157,10 +175,15 @@ if (!templates.length) die("records/surface.json declares no templates — the p
 // ── 3. render ─────────────────────────────────────────────────────────────
 // The band. A tier-4 surface drops the layer claim; Agentelic is place 3, so it
 // keeps it. SHELL.md §1.
-const band =
-  S.tier === 4
-    ? `<div class="band" data-tier="4"><span class="where">A <b>${esc(S.parent)}</b> project</span>${rungChip(S.surface_rung)}<span class="covers">That rung covers ${esc(S.surface_rung_covers)}.</span></div>`
-    : `<div class="band"><span class="where">${esc(S.surface)} is the <b>${esc(S.layer)}</b> layer of ${esc(S.parent)}</span>${rungChip(S.surface_rung)}<span class="covers">That rung covers ${esc(S.surface_rung_covers)}.</span></div>`;
+// Three variants, one per amp-nav place. The band claims exactly what the nav
+// has granted and no more: a layer word is a place-2 entitlement, place 3 is the
+// specification tier, place 4 is outside the story and gets attribution only.
+const WHERE = {
+  2: () => `${esc(S.surface)} is the <b>${esc(S.layer)}</b> layer of ${esc(S.parent)}`,
+  3: () => `${esc(S.surface)} is <b>a specification</b> in the ${esc(S.parent)} world &mdash; <a href="${esc(S.spec_url)}">read it</a>`,
+  4: () => `A <b>${esc(S.parent)}</b> project`,
+};
+const band = `<div class="band" data-tier="${S.tier}"><span class="where">${WHERE[S.tier]()}</span>${rungChip(S.surface_rung)}<span class="covers">That rung covers ${esc(S.surface_rung_covers)}.</span></div>`;
 
 const plate = `<div class="grid plate">
 ${S.plate.map((c) => `<div><div class="n${c.n === "0" || c.l.toLowerCase().includes("500") ? " q" : ""}">${esc(c.n)}</div><div class="l">${esc(c.l)}</div><div class="w">${esc(c.witness)}</div></div>`).join("\n")}
@@ -239,7 +262,8 @@ const css = read("src/shell.css")
   .filter(Boolean)
   .join("\n");
 
-const stamp = `agentelic ${S.version} · record ${S.verified_at} · built ${new Date().toISOString().slice(0, 10)}`;
+const stamp = `agentelic ${S.version} · ${S.shell_revision} · record ${S.verified_at} · built ${new Date().toISOString().slice(0, 10)}`;
+
 
 // The zero the pricing paragraph cites is the plate cell, not a re-typed word.
 const zero = S.plate.find((c) => c.n === "0");
@@ -267,6 +291,28 @@ let html = read("src/landing.html")
   .replace(/\{\{CONTACT\}\}/g, esc(S.contact.url))
   .replace(/\{\{STAMP\}\}/g, esc(stamp))
   .replace(/\{\{YEAR\}\}/g, String(new Date().getFullYear()));
+
+// r5: every §N a reader can SEE must resolve to a real heading in the spec it
+// cites. Fenced code blocks are stripped first — a "# 3 lines to join a cluster"
+// inside a fence is not a heading, and that bug has already bitten once.
+{
+  const visible = html
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ");
+  const cited = [...new Set([...visible.matchAll(/§\s*([0-9]+(?:\.[0-9]+)*)/g)].map((m) => m[1]))];
+  if (cited.length) {
+    const specPath = resolve(root, "docs/spec/README.md");
+    if (!existsSync(specPath)) die(`the page cites §${cited.join(", §")} and docs/spec/README.md does not exist`);
+    const spec = readFileSync(specPath, "utf8").replace(/^```[\s\S]*?^```/gm, "");
+    const heads = [...spec.matchAll(/^#{1,6}\s+.*$/gm)].map((m) => m[0]);
+    for (const n of cited) {
+      const hit = heads.some((h) => new RegExp(`(^|[^0-9.])${n.replace(/\./g, "\\.")}([^0-9.]|$)`).test(h));
+      if (!hit) die(`the page cites §${n} and docs/spec/README.md has no heading numbered ${n} (fences stripped before extracting headings)`);
+    }
+  }
+}
 
 const left = html.match(/\{\{[A-Z_]+\}\}/g);
 if (left) die(`unrendered token(s) survived into the artifact: ${[...new Set(left)].join(", ")}`);

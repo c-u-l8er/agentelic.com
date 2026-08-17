@@ -65,6 +65,15 @@ check("no unrendered {{TOKEN}}", !/\{\{[A-Z_]+\}\}/.test(html), (html.match(/\{\
 // ── 3. release identity: package.json == record == the stamp on the page ─
 check("version identity", pkg.version === S.version, `package.json ${pkg.version} vs record ${S.version}`);
 check("version stamped on the artifact", html.includes(`agentelic ${S.version}`), `no "agentelic ${S.version}" in index.html`);
+// Which revision of the shell was this built against? Every lane so far has
+// found a defect in SHELL.md, so a page that says which revision it carries is
+// the only way to know later which pages have a fix and which predate it.
+check("shell revision recorded", /^shell-r\d+$/.test(S.shell_revision || ""), `shell_revision is "${S.shell_revision}"`);
+check("shell revision stamped on the artifact", html.includes(S.shell_revision), `"${S.shell_revision}" is not printed on the page`);
+// r5: the rung must have a named, APPROVED witness — not merely "no pending
+// gates", which independent_build makes impossible forever.
+check("the rung has a named witness gate", !!S.gates?.[S.rung_witness], `rung_witness "${S.rung_witness}" is not a gate`);
+check("the witness gate is approved", S.gates?.[S.rung_witness]?.status === "approved", `witness "${S.rung_witness}" is ${S.gates?.[S.rung_witness]?.status}`);
 
 // ── 4. every rung on the artifact is a real rung ─────────────────────────
 // A defaulted rung is a fabricated status. GPSCoord's gate found data-rung=""
@@ -96,13 +105,23 @@ if (bandM) {
   check("band carries the surface rung", band.includes(`data-rung="${S.surface_rung}"`), `band chip is not ${S.surface_rung}`);
   const cov = band.match(/class="covers">([^<]*)</);
   check("band carries a non-empty covers span", !!cov && cov[1].trim().length > 20, "covers span missing or too short to bound anything");
-  const tier4 = /class="band" data-tier="4"/.test(html);
-  check(
-    "band variant matches the recorded tier",
-    tier4 === (S.tier === 4),
-    `record says tier ${S.tier} but the band is the ${tier4 ? "tier-4" : "standard"} variant`,
-  );
-  if (S.tier !== 4) check("band states the layer", band.includes(`<b>${S.layer}</b>`), `layer "${S.layer}" not in the band`);
+  // The band check refuses in BOTH directions (SHELL.md r5). Half of it is
+  // refusing a layer claim a tier has not earned — that is the gpscoord defect.
+  // The other half is a place-2 band that quietly DROPS its layer word, which is
+  // the same defect inverted and passed until someone tried it.
+  const tier = Number((html.match(/class="band" data-tier="(\d)"/) || [])[1]);
+  check("band variant matches the recorded tier", tier === S.tier, `record says tier ${S.tier}, band says ${tier}`);
+  const hasLayer = /<span class="where">[^<]*is the <b>/.test(band);
+  if (S.tier === 2) {
+    check("a place-2 band prints its layer word", hasLayer && band.includes(`<b>${S.layer}</b>`), `layer "${S.layer}" is missing from a place-2 band`);
+  } else {
+    check(`a place-${S.tier} band claims no layer`, !hasLayer, "it prints a layer sentence its tier has not earned");
+  }
+  if (S.tier === 3) {
+    check("a place-3 band names itself a specification", /<b>a specification<\/b>/.test(band), "place 3 is the specification tier and the band does not say so");
+    check("a place-3 band links the spec amp-nav records", band.includes(S.spec_url), `the band does not link ${S.spec_url}`);
+  }
+  if (S.tier === 4) check("a place-4 band is attribution only", /A <b>/.test(band), "tier 4 is attribution, not membership");
 }
 
 // ── 6. the retraction blocklist ──────────────────────────────────────────
@@ -215,7 +234,11 @@ for (const sel of [...anim.matchAll(/querySelector(?:All)?\("([^"]+)"\)/g)].map(
 // It is the token used for the covers span and the status labels — the two
 // elements whose whole job is to keep a page honest. A caveat that cannot be
 // read is not a caveat. SHELL.md §0.
-const tokens = (html.match(/TOKENS-START[\s\S]*?TOKENS-END/) || [""])[0];
+// Anchored on the MARKER COMMENTS, not the bare words: the stylesheet's header
+// explains the mechanism and so contains the phrase "TOKENS-START and
+// TOKENS-END". A lazy match on the bare words finds that sentence, reads zero
+// tokens out of it and measures nothing while reporting a pass.
+const tokens = (html.match(/\/\*\s*TOKENS-START[\s\S]*?TOKENS-END\s*\*\//) || [""])[0];
 const hex = (h) => {
   const v = h.replace("#", "");
   const n = v.length === 3 ? v.split("").map((c) => c + c).join("") : v;

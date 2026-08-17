@@ -6,15 +6,25 @@
   "origin": "https://agentelic.com",
   "repo": "https://github.com/c-u-l8er/agentelic.com",
   "surface": "Agentelic",
-  "layer": "engineering",
   "parent": "ComputeDriven",
 
+  "shell_revision": "shell-r5",
+
   "tier": 3,
-  "_tier_comment": "ampersand-nav/src/amp-nav.js records agentelic as { place: 3, rung: \"live_deployed\" } — a specification tier surface that is inside the story, NOT place 4. So this band takes the STANDARD variant WITH the layer sentence, and the portfolio <amp-nav> stays on the page. Read-only check against ampersand-nav; lane N owns that file.",
+  "layer": null,
+  "_tier_comment": "CORRECTED. ampersand-nav/src/amp-nav.js records agentelic as { name: \"Agentelic\", place: 3, rung: \"live_deployed\", spec: \"…/agentelic.com/docs/spec/README.md\" } — and it records NO layer field. Only place-2 entries carry `layer`. The first draft of this record took the word \"engineering layer\" out of this repo's own CLAUDE.md and printed a layer sentence the nav has not granted, which is the same defect gpscoord shipped in the opposite direction. A place-3 band says the surface is A SPECIFICATION in the ComputeDriven world and links the spec the nav names. The portfolio <amp-nav> stays on the page (place 3 is inside the story, unlike place 4).",
+
+  "nav_divergence": {
+    "_comment": "Recorded, not resolved. SITES.md §0.4: some decisions are Travis's — flag and stop.",
+    "what": "amp-nav files this domain at place 3, the SPECIFICATION tier, and simultaneously records rung: \"live_deployed\". Measurement on 2026-08-16 agrees with the rung — the MCP surface answers — so the band prints the nav's own word for the tier and the nav's own rung, and does not quietly promote the tier to match the rung.",
+    "also": "This repo's CLAUDE.md said \"spec + marketing site. No implementation code yet.\" while 66 tests pass and a deployed MCP server answers with 10 tools. That one WAS resolvable by measurement and has been corrected in CLAUDE.md. The place-3-with-a-live-rung question is not, and is flagged [TRAVIS]."
+  },
 
   "question": "What can a build actually prove about an agent?",
 
   "surface_rung": "live_deployed",
+  "rung_witness": "deployed_mcp_answers",
+  "_rung_witness_comment": "SHELL.md r5. \"Any pending gate blocks the rung\" is too blunt — independent_build is pending FOREVER by construction, so a surface could never advance at all. The record names WHICH gate witnesses the rung; it must be approved and carry its evidence, and the others stay pending without blocking it.",
   "surface_rung_covers": "the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today",
   "verified_at": "2026-08-16",
 

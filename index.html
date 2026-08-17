@@ -31,6 +31,8 @@ img,canvas,svg{max-width:100%}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
 .band{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:11px 22px;background:var(--ink2);border-bottom:1px solid var(--line);font-size:var(--xs)}
 .band .where{color:var(--fg2);text-transform:uppercase;letter-spacing:.05em}
+.band .where a{color:var(--acc);text-decoration:none;border-bottom:1px solid var(--acc-line)}
+.band .where a:hover,.band .where a:focus-visible{color:var(--fg);border-bottom-color:var(--fg)}
 .band .where b{color:var(--fg);font-weight:600}
 .band .covers{color:var(--fg2);flex:1 1 300px;min-width:0}
 .rung{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:var(--xs);padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);white-space:nowrap}
@@ -136,9 +138,13 @@ footer .links{display:flex;flex-wrap:wrap;gap:20px}
 .stamp{font-family:var(--mono);color:var(--fg2)}
 .attrib{max-width:var(--wrap);margin:0 auto;padding:0 22px 26px;font-size:var(--xs);color:var(--fg2);line-height:1.6}
 @media(max-width:640px){.status>div{grid-template-columns:1fr;gap:6px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}</style>
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(max-width:430px){
+.top{flex-direction:column;align-items:flex-start;gap:11px}
+.top nav{width:100%}
+}</style>
 <script type="module" src="/amp-nav.js"></script></head><body>
-<div class="band"><span class="where">Agentelic is the <b>engineering</b> layer of ComputeDriven</span><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span><span class="covers">That rung covers the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today.</span></div>
+<div class="band" data-tier="3"><span class="where">Agentelic is <b>a specification</b> in the ComputeDriven world &mdash; <a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md">read it</a></span><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span><span class="covers">That rung covers the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today.</span></div>
 <amp-nav property="agentelic"></amp-nav>
 <div class="wrap">
 
@@ -286,7 +292,7 @@ node build-site.mjs   <span class="c">// refuses to emit the page on a mismatch<
 <div>&copy; 2026 Agentelic&ensp;·&ensp;<a href="/">What can a build actually prove about an agent?</a></div>
 <div class="links"><a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md">Spec</a><a href="https://github.com/c-u-l8er/agentelic.com">Source</a><a href="https://github.com/c-u-l8er/agentelic.com/issues">Challenge a claim</a><a href="https://computedriven.com">ComputeDriven</a><a href="https://ampersandboxdesign.com">[&amp;]</a></div>
 </div>
-<p class="attrib"><span class="stamp">agentelic 0.3.0 · record 2026-08-16 · built 2026-08-17</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the issue tracker — there is no email address on this site, and no form, because neither has been set up rather than because we would not like one.</p>
+<p class="attrib"><span class="stamp">agentelic 0.3.0 · shell-r5 · record 2026-08-16 · built 2026-08-17</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the issue tracker — there is no email address on this site, and no form, because neither has been set up rather than because we would not like one.</p>
 </footer>
 <script src="/idanim.js" defer></script>
 </body></html>

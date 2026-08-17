@@ -34,12 +34,17 @@ img,canvas,svg{max-width:100%}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
 
 /* --- placement band: shared, identical on every surface ---
-   Agentelic is amp-nav place:3 with rung live_deployed — inside the story, not
-   tier 4 — so this is the STANDARD band and it carries the layer sentence.
-   .covers is 11px and load-bearing (it is the span that bounds the chip), so it
-   takes --fg2 rather than --fg3. SHELL.md §0 and §1. */
+   Agentelic is amp-nav place:3 — the SPECIFICATION tier — and amp-nav records
+   NO layer for it. Only place-2 entries carry a `layer`. So this band says the
+   surface is a specification and links the spec the nav names; it does NOT
+   print a layer sentence, which the first draft here took out of the repo's own
+   CLAUDE.md and printed anyway. The portfolio nav stays (place 3 is inside the
+   story, unlike place 4). .covers is 11px and load-bearing — it is the span
+   that bounds the chip — so it takes --fg2, not --fg3. SHELL.md §0, §1, r5. */
 .band{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:11px 22px;background:var(--ink2);border-bottom:1px solid var(--line);font-size:var(--xs)}
 .band .where{color:var(--fg2);text-transform:uppercase;letter-spacing:.05em}
+.band .where a{color:var(--acc);text-decoration:none;border-bottom:1px solid var(--acc-line)}
+.band .where a:hover,.band .where a:focus-visible{color:var(--fg);border-bottom-color:var(--fg)}
 .band .where b{color:var(--fg);font-weight:600}
 .band .covers{color:var(--fg2);flex:1 1 300px;min-width:0}
 .rung{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:var(--xs);padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);white-space:nowrap}
@@ -182,3 +187,11 @@ footer .links{display:flex;flex-wrap:wrap;gap:20px}
 
 @media(max-width:640px){.status>div{grid-template-columns:1fr;gap:6px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* SHELL.md r5 — `.top` breaks at 390px: justify-content:space-between puts the
+   logo in the MIDDLE of a two-row nav once the links wrap. Found by the
+   govtrio lane, on a page that had already passed a width sweep. */
+@media(max-width:430px){
+.top{flex-direction:column;align-items:flex-start;gap:11px}
+.top nav{width:100%}
+}
