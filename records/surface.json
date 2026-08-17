@@ -1,0 +1,284 @@
+{
+  "schema": "computedriven-surface-v1",
+  "_comment": "The frozen record this site is generated from. Nothing in the emitted page may state a rung, a status, a count or a hash that is not here. build-site.mjs reads it and RECOMPUTES every template hash from priv/templates/ with the same algorithm the running product uses; launch-gate.mjs then reads the emitted HTML and refuses to publish when page and record disagree. SHELL.md §4.",
+
+  "version": "0.3.0",
+  "origin": "https://agentelic.com",
+  "repo": "https://github.com/c-u-l8er/agentelic.com",
+  "surface": "Agentelic",
+  "layer": "engineering",
+  "parent": "ComputeDriven",
+
+  "tier": 3,
+  "_tier_comment": "ampersand-nav/src/amp-nav.js records agentelic as { place: 3, rung: \"live_deployed\" } — a specification tier surface that is inside the story, NOT place 4. So this band takes the STANDARD variant WITH the layer sentence, and the portfolio <amp-nav> stays on the page. Read-only check against ampersand-nav; lane N owns that file.",
+
+  "question": "What can a build actually prove about an agent?",
+
+  "surface_rung": "live_deployed",
+  "surface_rung_covers": "the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today",
+  "verified_at": "2026-08-16",
+
+  "text_floor": 9000,
+  "_text_floor_comment": "A FLOOR, not an exact count, on purpose. A sibling surface served 72,642 bytes that yielded 157 characters of extractable text and an external audit read the portfolio as empty. An exact count would have to be re-typed on every edit — and a number that has to be re-typed is the thing this gate exists to catch.",
+
+  "status": {
+    "statement": "The MCP server is deployed and answering. Its content-addressed template registry is the one artifact on this domain whose claim can be checked from outside: the SHA-256 the deployed server returns for each template is recomputed here from the files in this repository, and the build refuses to emit a page when they disagree.",
+    "source": "Measured 2026-08-16. POST https://app.agentelic.com/mcp with tools/list → HTTP 200, 10 tools; with tools/call template_list → 2 templates and their hashes. mix test → 66 tests, 0 failures. build-site.mjs recomputes both hashes with the algorithm in lib/agentelic/templates/registry.ex.",
+    "limit": "This establishes that a deployed process answers and that two template hashes are reproducible. It does not establish that anyone has built an agent with it: the persistence layer behind GET /api/agents returns HTTP 500 on the deployed app, so the register of built agents cannot even be read, and every tool that writes one is therefore unverified from outside. Nothing here is for sale — there is no checkout, no account and no billing code anywhere in the source."
+  },
+
+  "advance": {
+    "next_rung": "external",
+    "requires": "Someone who is not us builds an agent through the deployed MCP surface and reports the artifact hash. That first needs the persistence fault below fixed, because the pipeline cannot record a build it cannot write."
+  },
+
+  "probes": {
+    "_comment": "Every row is one request that was actually issued on 2026-08-16, with its verbatim response status. These are FROZEN observations, not live checks: the build does not make network calls, and the page says the date beside them. A row whose `establishes` field over-claims its `status` is the defect this table exists to prevent.",
+    "measured_at": "2026-08-16",
+    "rows": [
+      {
+        "request": "POST https://app.agentelic.com/mcp  {\"method\":\"tools/list\"}",
+        "status": "200",
+        "ok": true,
+        "establishes": "A deployed process answers JSON-RPC and enumerates 10 tools."
+      },
+      {
+        "request": "POST https://app.agentelic.com/mcp  tools/call template_list",
+        "status": "200",
+        "ok": true,
+        "establishes": "It returns 2 templates, each with a SHA-256 — both recomputed below."
+      },
+      {
+        "request": "POST https://app.agentelic.com/mcp  tools/call agent_status (unknown id)",
+        "status": "-32602",
+        "ok": true,
+        "establishes": "The tool dispatched and refused by name. It does NOT establish that the database was reached."
+      },
+      {
+        "request": "GET  https://app.agentelic.com/api/agents",
+        "status": "500",
+        "ok": false,
+        "establishes": "The register of built agents cannot be read. This is the fault that caps the whole surface."
+      },
+      {
+        "request": "GET  https://app.agentelic.com/api/agents?workspace_id=probe",
+        "status": "400",
+        "ok": false,
+        "establishes": "Still no read path. A different failure, not a working one."
+      },
+      {
+        "request": "GET  https://app.agentelic.com/",
+        "status": "404",
+        "ok": true,
+        "establishes": "By design — lib/agentelic_web/router.ex declares POST routes only. A 404 here is the app answering, not the app being down."
+      }
+    ]
+  },
+
+  "templates": {
+    "_comment": "The SHA-256 values the DEPLOYED server returned on 2026-08-16, frozen. build-site.mjs walks each `path` below, sorts the regular files, concatenates and hashes them — the algorithm in lib/agentelic/templates/registry.ex, compute_template_hash/1 — and exits non-zero if the result differs from `hash`. That is the direction of dependency SHELL.md §4.1 asks for: the page cell is COMPUTED and the record is what it is checked against.",
+    "algorithm": "sha256(concat(sort(regular files under the template dir)))  ·  lib/agentelic/templates/registry.ex",
+    "returned_by": "POST /mcp tools/call template_list on https://app.agentelic.com, 2026-08-16",
+    "rows": [
+      {
+        "name": "elixir/mcp-server",
+        "version": "0.1.0",
+        "path": "priv/templates/elixir/mcp-server",
+        "hash": "251e82ed7ade466985396271ecad5c34d6411a8e940747bee49c8cc599098ae7"
+      },
+      {
+        "name": "typescript/mcp-server",
+        "version": "0.1.0",
+        "path": "priv/templates/typescript/mcp-server",
+        "hash": "018d6a172272e5748bc0bb56b238b04145923f267cd49cb36c1090f713568c2b"
+      }
+    ]
+  },
+
+  "plate": [
+    {
+      "n": "10",
+      "l": "MCP tools answering",
+      "witness": "tools/list on the deployed server, 2026-08-16. AGENTS.md in this repository still lists 7 as \"planned\"; the deployed surface has ten."
+    },
+    {
+      "n": "66",
+      "l": "Tests, 0 failures",
+      "witness": "mix test in this repository, 2026-08-16, with the :db tag excluded by default."
+    },
+    {
+      "n": "2",
+      "l": "Template hashes reproduced",
+      "witness": "Both recomputed from priv/templates/ at build time and compared against what the deployed server returned."
+    },
+    {
+      "n": "1",
+      "l": "Deployed read path returning 500",
+      "witness": "GET /api/agents. Not a missing feature — a fault in something that shipped."
+    },
+    {
+      "n": "0",
+      "l": "Ways to pay for this",
+      "witness": "No checkout, no account, no billing. Zero matches for stripe/checkout/billing/subscription across lib/, test/ and config/."
+    }
+  ],
+
+  "built": {
+    "_comment": "Rungs here are per-capability and must each be one of the five. The CTA group a capability appears under is derived from its rung, never chosen by hand.",
+    "rows": [
+      {
+        "name": "MCP tool surface",
+        "rung": "live_deployed",
+        "note": "Ten tools, JSON-RPC over POST /mcp, answering on the deployed host today. tools/list and template_list return real payloads."
+      },
+      {
+        "name": "Content-addressed template registry",
+        "rung": "live_deployed",
+        "note": "Templates are pinned by the SHA-256 of their own contents. This is the one claim on the domain a stranger can falsify without our cooperation: clone the repo, hash the directory, compare.",
+        "needs": "Nothing. Run the hash yourself."
+      },
+      {
+        "name": "Build pipeline — parse, generate, compile, package",
+        "rung": "in_tree",
+        "note": "lib/agentelic/pipeline/ with an orchestrator that stages the four steps, covered by the test suite.",
+        "needs": "A deployed run anyone can point at. It writes to the database, and the database read path is the 500 above."
+      },
+      {
+        "name": "Deterministic test intake and runner",
+        "rung": "in_tree",
+        "note": "lib/agentelic/testing/ compiles acceptance criteria into cases and runs them.",
+        "needs": "The same. Nothing outside this tree has exercised it."
+      },
+      {
+        "name": "Staged deployment with governance gates",
+        "rung": "spec",
+        "note": "staging → canary → production with gates is in docs/spec/README.md. There is no deployment record anyone can read.",
+        "needs": "An implementation, and a deployment whose gates refused something."
+      },
+      {
+        "name": "Accounts, seats, billing",
+        "rung": "spec",
+        "note": "Priced on this page and built nowhere. There is no checkout, no account model and no billing code in the source.",
+        "needs": "A ruling on whether Agentelic sells anything at all — flagged [TRAVIS]."
+      }
+    ]
+  },
+
+  "cta": {
+    "_comment": "One group per rung, never one blended group. build-site.mjs refuses a verb the rung has not earned (SITES.md §0.7 / SHELL.md §3), refuses a group for a rung no capability in built.rows actually has, and refuses a capability rung with no group. The copy under each verb is this site's own; the verb itself is not.",
+    "_labels": {
+      "live_deployed": "answering on the deployed host today",
+      "in_tree": "written and tested here — nothing outside has run it",
+      "spec": "written down, and nothing runs"
+    },
+    "live_deployed": [
+      {
+        "verb": "Use the deployed artifact",
+        "href": "#hashes",
+        "what": "Ask the running MCP server for its template list and hash the directories yourself. Both values are above; if yours differ, one of us is wrong and the issue tracker is how you say so."
+      }
+    ],
+    "in_tree": [
+      {
+        "verb": "Inspect the source",
+        "href": "https://github.com/c-u-l8er/agentelic.com",
+        "what": "<code>lib/agentelic/pipeline/</code> stages parse, generate, compile and package; <code>lib/agentelic/testing/</code> compiles acceptance criteria into runnable cases."
+      },
+      {
+        "verb": "Run the tests",
+        "href": "https://github.com/c-u-l8er/agentelic.com",
+        "what": "<code>mix deps.get &amp;&amp; mix test</code>. The count on this page came from that command on the date beside it, not from a badge."
+      }
+    ],
+    "spec": [
+      {
+        "verb": "Read",
+        "href": "https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md",
+        "what": "The product specification, including the staged-deployment gates that are not implemented. It carries a supersession banner: everything specifying Supabase is superseded and was not rewritten, because rewriting it would fabricate a review nobody performed."
+      },
+      {
+        "verb": "Challenge",
+        "href": "https://github.com/c-u-l8er/agentelic.com/issues",
+        "what": "The pricing on this page prices something that does not exist, and it says so. If a rung here is generous, the fastest correction is an issue that names the row."
+      },
+      {
+        "verb": "Implement",
+        "href": "https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md",
+        "what": "The deployment gates are the interesting unbuilt part: a staged rollout that can <em>refuse</em>. Nothing in the tree refuses anything yet."
+      }
+    ]
+  },
+
+  "spec_url": "https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md",
+
+  "pricing": {
+    "label": "Proposed pricing — nothing is for sale, and no part of this is built",
+    "flag": "[TRAVIS]",
+    "note": "These numbers were on this page as if they were a price list. They price accounts, seats and support that do not exist in the source: no checkout, no billing, no account model, no way to become a customer. They are kept visible and labelled rather than quietly deleted, because a proposal you can argue with is worth more than a gap — but whether Agentelic sells anything is Travis's call, not this page's.",
+    "tiers": [
+      { "name": "Builder", "price": "$49", "unit": "/mo", "detail": "5 agents · spec-driven design · deterministic testing · local deployment" },
+      { "name": "Team", "price": "$199", "unit": "/seat/mo", "detail": "unlimited agents · staging and production · role-based access · compliance templates" },
+      { "name": "Enterprise", "price": "Custom", "unit": "", "detail": "dedicated infrastructure · SSO/SAML · custom compliance · SLA" }
+    ]
+  },
+
+  "retracted": {
+    "_comment": "Every string a claim audit removed from this surface. launch-gate.mjs refuses any page that reinstates one, EXCEPT inside the retraction paragraph — naming the wrong value is what a retraction is. SHELL.md §4.2.",
+    "strings": [
+      "Community-reviewed, trust-scored, ready for install",
+      "hello@agentelic.com",
+      "Start building today"
+    ],
+    "paragraph": "Two claims used to stand on this page and both are gone rather than softened. The Distribution card sold FleetPrompt as a marketplace where agents are “Community-reviewed, trust-scored, ready for install” — fleetprompt.com now records that model as superseded, its replacement as not built, and its second publisher as none, so all three parts of that sentence were false at once. And the pricing section was headed “Start building today” above an email address, which invited a purchase that has no checkout behind it and a correspondence that has no mailbox. The heading is gone, the address is gone, and the prices are still here with the word proposed on them."
+  },
+
+  "contact": {
+    "kind": "github_issues",
+    "url": "https://github.com/c-u-l8er/agentelic.com/issues",
+    "_comment": "Deliberately NOT a mailto: — Travis's call, 2026-08-11 — and deliberately NOT toolboxhvac's Formspree endpoint, which belongs to that surface. This page previously carried mailto:hello@agentelic.com. If Agentelic needs a non-GitHub correction channel it must have its own endpoint, or an explicit ruling to share one. Flagged [TRAVIS]."
+  },
+
+  "gates": {
+    "_comment": "A gate may not read approved without its evidence, reviewer and date fields, and launch-gate.mjs enforces that. While any gate is pending the surface may not claim a rung above the one in surface_rung.",
+    "template_hash_reproduction": {
+      "label": "The deployed template hashes recompute from this source",
+      "status": "approved",
+      "description": "Both SHA-256 values returned by template_list on the deployed server were recomputed from priv/templates/ with the registry's own algorithm and matched exactly.",
+      "evidence": "records/surface.json templates.rows, recomputed by build-site.mjs on every build; the build exits non-zero on a mismatch.",
+      "reviewer": "build-site.mjs, run against priv/templates/",
+      "date": "2026-08-16"
+    },
+    "deployed_mcp_answers": {
+      "label": "The MCP surface answers on the deployed host",
+      "status": "approved",
+      "description": "POST /mcp tools/list returned HTTP 200 with 10 tools; tools/call template_list returned 2 templates.",
+      "evidence": "records/surface.json probes.rows, measured 2026-08-16.",
+      "reviewer": "curl, against https://app.agentelic.com/mcp",
+      "date": "2026-08-16"
+    },
+    "persistence_read_path": {
+      "label": "The register of built agents can be read on the deployed host",
+      "status": "pending",
+      "description": "GET /api/agents returns HTTP 500. Until it does not, no build, test run or deployment this product performs can be shown to anyone outside.",
+      "evidence": null,
+      "reviewer": null,
+      "date": null
+    },
+    "independent_build": {
+      "label": "Someone who is not us built an agent with it",
+      "status": "pending",
+      "description": "The only rung nobody here can award themselves. A reported build, a filed correction, or a fork that runs the pipeline.",
+      "evidence": null,
+      "reviewer": null,
+      "date": null
+    },
+    "commercial_ruling": {
+      "label": "Whether Agentelic sells anything",
+      "status": "pending",
+      "description": "The page prices seats. The source has no checkout. Travis's call — the page states the proposal and does not act on it.",
+      "evidence": null,
+      "reviewer": null,
+      "date": null
+    }
+  }
+}

@@ -1,0 +1,184 @@
+/* ==========================================================================
+   The ComputeDriven page shell. Everything between TOKENS-START and TOKENS-END
+   is this site's own character. Everything after TOKENS-END is shared
+   structure, copied from ~/Projects/GPSCoord/src/shell.css.
+   Documented in ProjectAmp2/agents/SHELL.md.
+   ========================================================================== */
+/* TOKENS-START — Agentelic: gate blue on graphite */
+:root{
+--ink:#06080d;--ink2:#0a0e15;--ink3:#101620;            /* page · surface · raised */
+--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.14);
+/* fg2 .66 measures 6.98:1 on the lightest surface, fg3 .55 measures 5.31:1.
+   --fg3 was .34 portfolio-wide and that is 2.78:1 — a caveat nobody can read
+   is not a caveat. launch-gate.mjs refuses any declared text token below
+   4.5:1 against the surface it sits on. SHELL.md §0. */
+--fg:#e6ebf2;--fg2:rgba(230,235,242,.66);--fg3:rgba(230,235,242,.55);
+--acc:#3d8bfd;--acc-soft:rgba(61,139,253,.1);--acc-line:rgba(61,139,253,.34);
+--data:#5ad1c8;--data-soft:rgba(90,209,200,.1);--warn:#f5c451;
+--display:"Instrument Serif",Georgia,serif;
+--ui:"DM Sans",system-ui,-apple-system,sans-serif;
+--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+--r:10px;--rl:16px
+}
+/* TOKENS-END */
+
+:root{--wrap:1080px;--xs:.6875rem;--sm:.8125rem;--md:1.0625rem;--lg:1.25rem;
+--h2:clamp(1.7rem,4vw,2.5rem);--h1:clamp(2.2rem,6vw,3.9rem)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ink);color:var(--fg);font:.9375rem/1.6 var(--ui);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}
+h1,h2,h3{margin:0}
+img,canvas,svg{max-width:100%}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
+
+/* --- placement band: shared, identical on every surface ---
+   Agentelic is amp-nav place:3 with rung live_deployed — inside the story, not
+   tier 4 — so this is the STANDARD band and it carries the layer sentence.
+   .covers is 11px and load-bearing (it is the span that bounds the chip), so it
+   takes --fg2 rather than --fg3. SHELL.md §0 and §1. */
+.band{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:11px 22px;background:var(--ink2);border-bottom:1px solid var(--line);font-size:var(--xs)}
+.band .where{color:var(--fg2);text-transform:uppercase;letter-spacing:.05em}
+.band .where b{color:var(--fg);font-weight:600}
+.band .covers{color:var(--fg2);flex:1 1 300px;min-width:0}
+.rung{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:var(--xs);padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);white-space:nowrap}
+.rung::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rung[data-rung=spec]{color:#9aa4b2;border-color:rgba(154,164,178,.35)}
+.rung[data-rung=in_tree]{color:#7aa2f7;border-color:rgba(122,162,247,.35)}
+.rung[data-rung=live_local]{color:var(--data);border-color:rgba(90,209,200,.4);background:var(--data-soft)}
+.rung[data-rung=live_deployed]{color:#4ade80;border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08)}
+.rung[data-rung=external]{color:#c4a1ff;border-color:rgba(196,161,255,.4)}
+.rung[data-rung="?"]{color:var(--warn);border-color:rgba(245,196,81,.45);border-style:dashed}
+
+/* --- nav --- */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--mono);font-size:var(--md);font-weight:600;letter-spacing:-.03em;color:var(--fg);text-decoration:none;white-space:nowrap}
+.logo span{color:var(--acc)}
+.logo:hover,.logo:focus-visible{color:var(--acc)}
+.top nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.top nav a{color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{color:var(--acc)}
+.btn{display:inline-block;background:var(--acc);color:#03080f;font-weight:700;border-radius:var(--r);padding:11px 20px;text-decoration:none;font-size:var(--sm);border:1px solid var(--acc)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line2);font-weight:500}
+.btn:hover,.btn:focus-visible{filter:brightness(1.12)}
+.btn.ghost:hover,.btn.ghost:focus-visible{border-color:var(--acc-line);color:var(--acc);filter:none}
+
+/* --- the identifying animation (SHELL.md §8) ---
+   A build pipeline: units enter, cross the stages, and one is refused at a
+   gate. Absolutely positioned so it cannot move or delay the h1; the section
+   clips it so it can never widen the document; masked so the lede stays
+   readable where they overlap. It renders no data and asserts nothing — the
+   stage and unit counts inside it are DELIBERATELY not any figure this page
+   prints, and launch-gate.mjs checks that. */
+.hero{position:relative;overflow:hidden}
+.hero .front{position:relative;z-index:1}
+.idanim{position:absolute;z-index:0;top:0;bottom:0;right:-30px;left:auto;width:min(46vw,450px);pointer-events:none;display:flex;align-items:center;
+  -webkit-mask-image:radial-gradient(circle at 58% 50%,#000 46%,transparent 78%);
+  mask-image:radial-gradient(circle at 58% 50%,#000 46%,transparent 78%)}
+/* height:100% + preserveAspectRatio="meet" letterboxes the pipe inside the hero
+   instead of overflowing it. With height:auto the 300x460 viewBox rendered
+   taller than the hero at every width and the top and bottom plates were
+   sliced off by the section's own overflow:hidden. */
+.idanim svg{display:block;width:100%;height:100%}
+@media(min-width:861px){.hero .lede{max-width:min(52ch,58%)}}
+@media(max-width:860px){.idanim{right:-26%;width:min(88vw,450px);opacity:.24}}
+
+/* --- sections --- */
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.eyebrow{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.14em;color:var(--acc);display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.eyebrow::before{content:"";width:20px;height:1px;background:var(--acc);opacity:.6;flex:none}
+h1{font-family:var(--display);font-weight:400;font-size:var(--h1);line-height:1.03;letter-spacing:-.02em;max-width:16ch;text-wrap:balance}
+h1 em{font-style:italic;color:var(--acc)}
+h2{font-family:var(--display);font-weight:400;font-size:var(--h2);line-height:1.08;letter-spacing:-.015em;text-wrap:balance}
+h3{font-size:var(--md);font-weight:600}
+.lede{color:var(--fg2);font-size:var(--md);line-height:1.65;max-width:62ch;margin:14px 0 0}
+p{margin:14px 0 0}
+.btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+
+/* --- cards ---
+   Separators are each cell's own 1px shadow filling the grid gap, NOT a
+   container background showing through: that trick leaves a phantom lit
+   rectangle whenever the last row is short. */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--ink2);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-top:28px}
+.grid>div{background:var(--ink2);padding:22px;min-width:0;box-shadow:0 0 0 1px var(--line)}
+.grid h3{margin-bottom:8px}
+.grid p{margin:0;color:var(--fg2);font-size:var(--sm);line-height:1.6}
+.grid .head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.grid .head h3{margin:0}
+.needs{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2);font-family:var(--mono);font-size:var(--xs);color:var(--fg2);line-height:1.6;overflow-wrap:anywhere}
+.needs b{color:var(--fg);font-weight:500}
+
+/* --- count plate --- */
+.plate{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}
+.plate>div{padding:22px 18px}
+.plate .n{font-family:var(--mono);font-weight:600;font-size:1.6rem;color:var(--fg);line-height:1}
+.plate .n.q{color:var(--warn)}
+.plate .l{font-size:var(--xs);letter-spacing:.09em;text-transform:uppercase;color:var(--fg2);margin-top:7px}
+.plate .w{font-size:var(--xs);color:var(--fg2);margin-top:9px;line-height:1.55;opacity:.85}
+.mt{margin-top:40px}
+.sm{font-size:var(--sm)}
+
+/* --- status block: shared, identical on every surface --- */
+.status{border:1px solid var(--line2);border-radius:var(--rl);background:var(--ink2);overflow:hidden;margin-top:26px}
+.status>div{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:15px 20px;border-top:1px solid var(--line);min-width:0}
+.status>div:first-child{border-top:0}
+.status dt{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.1em;color:var(--fg2);margin:0}
+.status dd{margin:0;font-size:var(--sm);color:var(--fg2);line-height:1.6;min-width:0;overflow-wrap:anywhere}
+.status dd strong{color:var(--fg);font-weight:500}
+.status .limit{background:rgba(245,196,81,.05)}
+.status .limit dt{color:var(--warn)}
+
+/* --- evidence tables — wide content scrolls in its own box, never the page --- */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ink2);margin-top:22px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-family:var(--mono);font-size:var(--xs)}
+th,td{text-align:left;padding:11px 16px;border-top:1px solid var(--line);white-space:nowrap}
+th{color:var(--fg2);text-transform:uppercase;letter-spacing:.09em;font-weight:500;background:var(--ink3);border-top:0}
+td.wide{white-space:normal;font-family:var(--ui);color:var(--fg2);min-width:230px}
+td.hash{color:var(--data);font-size:.625rem}
+td.code{color:var(--fg)}
+.st{font-weight:600}
+.st.ok{color:var(--data)}
+.st.bad{color:var(--warn)}
+
+/* --- claim tag + retraction --- */
+.tag{display:inline-block;font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.06em;color:var(--warn);background:rgba(245,196,81,.06);border:1px dashed rgba(245,196,81,.35);border-radius:6px;padding:5px 11px;margin-bottom:16px}
+.tag.ok{color:var(--data);border-color:rgba(90,209,200,.35);background:var(--data-soft)}
+.retract{border-left:3px solid var(--warn);background:rgba(245,196,81,.05);border-radius:0 var(--r) var(--r) 0;padding:20px;max-width:74ch;margin-top:26px}
+.retract h3{color:var(--warn);font-size:.9375rem}
+.retract p{font-size:var(--sm);color:var(--fg2);line-height:1.7}
+code{font-family:var(--mono);font-size:.92em;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{margin:16px 0 0;overflow-x:auto;background:var(--ink3);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font-family:var(--mono);font-size:var(--xs);line-height:1.7;color:var(--fg2)}
+pre code{background:none;padding:0}
+pre .c{color:var(--fg3)}
+pre .v{color:var(--data)}
+
+/* --- CTA, keyed to rung --- */
+.cta{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cta a{display:block;background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);padding:20px;text-decoration:none;transition:border-color .2s,background .2s,transform .2s;min-width:0}
+.cta a:hover,.cta a:focus-visible{border-color:var(--acc-line);background:var(--acc-soft);transform:translateY(-2px)}
+.cta .verb{display:block;font-family:var(--mono);font-size:var(--xs);font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:7px}
+.cta .what{display:block;font-size:var(--sm);line-height:1.55;color:var(--fg2)}
+.cta code{color:var(--data);background:none;padding:0}
+.ctagroup+.ctagroup{margin-top:34px}
+
+/* --- proposed pricing --- */
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+.tiers>div{border:1px dashed rgba(245,196,81,.3);border-radius:var(--r);background:rgba(245,196,81,.03);padding:20px;min-width:0}
+.tiers .l{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.1em;color:var(--warn)}
+.tiers .p{font-family:var(--mono);font-size:var(--lg);font-weight:600;color:var(--fg2);margin-top:8px}
+.tiers .p small{font-size:var(--xs);font-weight:400;color:var(--fg2)}
+.tiers .d{font-size:var(--xs);color:var(--fg2);margin-top:9px;line-height:1.6}
+
+/* --- footer --- */
+footer{border-top:1px solid var(--line);background:var(--ink2);margin-top:56px}
+footer .in{max-width:var(--wrap);margin:0 auto;padding:26px 22px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center;font-size:var(--xs);color:var(--fg2)}
+footer a{color:var(--fg2);text-decoration:none}
+footer a:hover,footer a:focus-visible{color:var(--acc)}
+footer .links{display:flex;flex-wrap:wrap;gap:20px}
+.stamp{font-family:var(--mono);color:var(--fg2)}
+.attrib{max-width:var(--wrap);margin:0 auto;padding:0 22px 26px;font-size:var(--xs);color:var(--fg2);line-height:1.6}
+
+@media(max-width:640px){.status>div{grid-template-columns:1fr;gap:6px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}

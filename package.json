@@ -1,0 +1,12 @@
+{
+  "name": "agentelic-com",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "The agentelic.com landing surface: generated from records/surface.json and gated before it may be published.",
+  "scripts": {
+    "build": "node build-site.mjs",
+    "gate": "node launch-gate.mjs",
+    "test:launch": "node build-site.mjs && node launch-gate.mjs"
+  }
+}

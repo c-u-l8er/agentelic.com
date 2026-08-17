@@ -1,1075 +1,292 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Agentelic — Premium Agent Engineering</title>
-        <meta
-            name="description"
-            content="Enterprise-grade AI agent builder. Spec-driven design, deterministic testing, governed deployment. Agents that ship."
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Archivo:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-        />
-        <style>
-            :root {
-                --bg: #08080a;
-                --s1: #0f0f12;
-                --s2: #16161a;
-                --s3: #1e1e23;
-                --b1: rgba(255, 255, 255, 0.05);
-                --b2: rgba(255, 255, 255, 0.09);
-                --b3: rgba(255, 255, 255, 0.16);
-                --t1: #e8e6e1;
-                --t2: #8a8780;
-                --t3: #55524d;
-                --t4: #333130;
-                --v: #b4a0e8;
-                --vd: rgba(180, 160, 232, 0.1);
-                --vg: rgba(180, 160, 232, 0.04);
-                --w: #e8c87a;
-                --wd: rgba(232, 200, 122, 0.1);
-                --cream: #f5f0e6;
-            }
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            html {
-                scroll-behavior: smooth;
-            }
-            body {
-                font-family: "Archivo", sans-serif;
-                background: var(--bg);
-                color: var(--t1);
-                -webkit-font-smoothing: antialiased;
-                font-size: 18px;
-                line-height: 1.7;
-                overflow-x: hidden;
-            }
-            a {
-                color: inherit;
-                text-decoration: none;
-            }
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What can a build actually prove about an agent? — Agentelic</title>
+<meta name="description" content="Agentelic builds agents from a specification. Its deployed MCP surface pins every code template by the SHA-256 of its own contents — and this page recomputes both hashes from source rather than asking you to believe them. What that proves, and what it does not, is stated row by row.">
+<meta name="falsifiable-question" content="What can a build actually prove about an agent?">
+<link rel="canonical" href="https://agentelic.com/">
+<meta name="theme-color" content="#06080d">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>/* TOKENS-START — Agentelic: gate blue on graphite */
+:root{
+--ink:#06080d;--ink2:#0a0e15;--ink3:#101620;
+--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.14);
+--fg:#e6ebf2;--fg2:rgba(230,235,242,.66);--fg3:rgba(230,235,242,.55);
+--acc:#3d8bfd;--acc-soft:rgba(61,139,253,.1);--acc-line:rgba(61,139,253,.34);
+--data:#5ad1c8;--data-soft:rgba(90,209,200,.1);--warn:#f5c451;
+--display:"Instrument Serif",Georgia,serif;
+--ui:"DM Sans",system-ui,-apple-system,sans-serif;
+--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+--r:10px;--rl:16px
+}
+/* TOKENS-END */
+:root{--wrap:1080px;--xs:.6875rem;--sm:.8125rem;--md:1.0625rem;--lg:1.25rem;
+--h2:clamp(1.7rem,4vw,2.5rem);--h1:clamp(2.2rem,6vw,3.9rem)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ink);color:var(--fg);font:.9375rem/1.6 var(--ui);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}
+h1,h2,h3{margin:0}
+img,canvas,svg{max-width:100%}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
+.band{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:11px 22px;background:var(--ink2);border-bottom:1px solid var(--line);font-size:var(--xs)}
+.band .where{color:var(--fg2);text-transform:uppercase;letter-spacing:.05em}
+.band .where b{color:var(--fg);font-weight:600}
+.band .covers{color:var(--fg2);flex:1 1 300px;min-width:0}
+.rung{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:var(--xs);padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);white-space:nowrap}
+.rung::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rung[data-rung=spec]{color:#9aa4b2;border-color:rgba(154,164,178,.35)}
+.rung[data-rung=in_tree]{color:#7aa2f7;border-color:rgba(122,162,247,.35)}
+.rung[data-rung=live_local]{color:var(--data);border-color:rgba(90,209,200,.4);background:var(--data-soft)}
+.rung[data-rung=live_deployed]{color:#4ade80;border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08)}
+.rung[data-rung=external]{color:#c4a1ff;border-color:rgba(196,161,255,.4)}
+.rung[data-rung="?"]{color:var(--warn);border-color:rgba(245,196,81,.45);border-style:dashed}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--mono);font-size:var(--md);font-weight:600;letter-spacing:-.03em;color:var(--fg);text-decoration:none;white-space:nowrap}
+.logo span{color:var(--acc)}
+.logo:hover,.logo:focus-visible{color:var(--acc)}
+.top nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.top nav a{color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{color:var(--acc)}
+.btn{display:inline-block;background:var(--acc);color:#03080f;font-weight:700;border-radius:var(--r);padding:11px 20px;text-decoration:none;font-size:var(--sm);border:1px solid var(--acc)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line2);font-weight:500}
+.btn:hover,.btn:focus-visible{filter:brightness(1.12)}
+.btn.ghost:hover,.btn.ghost:focus-visible{border-color:var(--acc-line);color:var(--acc);filter:none}
+.hero{position:relative;overflow:hidden}
+.hero .front{position:relative;z-index:1}
+.idanim{position:absolute;z-index:0;top:0;bottom:0;right:-30px;left:auto;width:min(46vw,450px);pointer-events:none;display:flex;align-items:center;
+-webkit-mask-image:radial-gradient(circle at 58% 50%,#000 46%,transparent 78%);
+mask-image:radial-gradient(circle at 58% 50%,#000 46%,transparent 78%)}
+.idanim svg{display:block;width:100%;height:100%}
+@media(min-width:861px){.hero .lede{max-width:min(52ch,58%)}}
+@media(max-width:860px){.idanim{right:-26%;width:min(88vw,450px);opacity:.24}}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.eyebrow{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.14em;color:var(--acc);display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.eyebrow::before{content:"";width:20px;height:1px;background:var(--acc);opacity:.6;flex:none}
+h1{font-family:var(--display);font-weight:400;font-size:var(--h1);line-height:1.03;letter-spacing:-.02em;max-width:16ch;text-wrap:balance}
+h1 em{font-style:italic;color:var(--acc)}
+h2{font-family:var(--display);font-weight:400;font-size:var(--h2);line-height:1.08;letter-spacing:-.015em;text-wrap:balance}
+h3{font-size:var(--md);font-weight:600}
+.lede{color:var(--fg2);font-size:var(--md);line-height:1.65;max-width:62ch;margin:14px 0 0}
+p{margin:14px 0 0}
+.btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--ink2);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-top:28px}
+.grid>div{background:var(--ink2);padding:22px;min-width:0;box-shadow:0 0 0 1px var(--line)}
+.grid h3{margin-bottom:8px}
+.grid p{margin:0;color:var(--fg2);font-size:var(--sm);line-height:1.6}
+.grid .head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.grid .head h3{margin:0}
+.needs{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2);font-family:var(--mono);font-size:var(--xs);color:var(--fg2);line-height:1.6;overflow-wrap:anywhere}
+.needs b{color:var(--fg);font-weight:500}
+.plate{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}
+.plate>div{padding:22px 18px}
+.plate .n{font-family:var(--mono);font-weight:600;font-size:1.6rem;color:var(--fg);line-height:1}
+.plate .n.q{color:var(--warn)}
+.plate .l{font-size:var(--xs);letter-spacing:.09em;text-transform:uppercase;color:var(--fg2);margin-top:7px}
+.plate .w{font-size:var(--xs);color:var(--fg2);margin-top:9px;line-height:1.55;opacity:.85}
+.mt{margin-top:40px}
+.sm{font-size:var(--sm)}
+.status{border:1px solid var(--line2);border-radius:var(--rl);background:var(--ink2);overflow:hidden;margin-top:26px}
+.status>div{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:15px 20px;border-top:1px solid var(--line);min-width:0}
+.status>div:first-child{border-top:0}
+.status dt{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.1em;color:var(--fg2);margin:0}
+.status dd{margin:0;font-size:var(--sm);color:var(--fg2);line-height:1.6;min-width:0;overflow-wrap:anywhere}
+.status dd strong{color:var(--fg);font-weight:500}
+.status .limit{background:rgba(245,196,81,.05)}
+.status .limit dt{color:var(--warn)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ink2);margin-top:22px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-family:var(--mono);font-size:var(--xs)}
+th,td{text-align:left;padding:11px 16px;border-top:1px solid var(--line);white-space:nowrap}
+th{color:var(--fg2);text-transform:uppercase;letter-spacing:.09em;font-weight:500;background:var(--ink3);border-top:0}
+td.wide{white-space:normal;font-family:var(--ui);color:var(--fg2);min-width:230px}
+td.hash{color:var(--data);font-size:.625rem}
+td.code{color:var(--fg)}
+.st{font-weight:600}
+.st.ok{color:var(--data)}
+.st.bad{color:var(--warn)}
+.tag{display:inline-block;font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.06em;color:var(--warn);background:rgba(245,196,81,.06);border:1px dashed rgba(245,196,81,.35);border-radius:6px;padding:5px 11px;margin-bottom:16px}
+.tag.ok{color:var(--data);border-color:rgba(90,209,200,.35);background:var(--data-soft)}
+.retract{border-left:3px solid var(--warn);background:rgba(245,196,81,.05);border-radius:0 var(--r) var(--r) 0;padding:20px;max-width:74ch;margin-top:26px}
+.retract h3{color:var(--warn);font-size:.9375rem}
+.retract p{font-size:var(--sm);color:var(--fg2);line-height:1.7}
+code{font-family:var(--mono);font-size:.92em;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{margin:16px 0 0;overflow-x:auto;background:var(--ink3);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font-family:var(--mono);font-size:var(--xs);line-height:1.7;color:var(--fg2)}
+pre code{background:none;padding:0}
+pre .c{color:var(--fg3)}
+pre .v{color:var(--data)}
+.cta{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cta a{display:block;background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);padding:20px;text-decoration:none;transition:border-color .2s,background .2s,transform .2s;min-width:0}
+.cta a:hover,.cta a:focus-visible{border-color:var(--acc-line);background:var(--acc-soft);transform:translateY(-2px)}
+.cta .verb{display:block;font-family:var(--mono);font-size:var(--xs);font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:7px}
+.cta .what{display:block;font-size:var(--sm);line-height:1.55;color:var(--fg2)}
+.cta code{color:var(--data);background:none;padding:0}
+.ctagroup+.ctagroup{margin-top:34px}
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+.tiers>div{border:1px dashed rgba(245,196,81,.3);border-radius:var(--r);background:rgba(245,196,81,.03);padding:20px;min-width:0}
+.tiers .l{font-family:var(--mono);font-size:var(--xs);text-transform:uppercase;letter-spacing:.1em;color:var(--warn)}
+.tiers .p{font-family:var(--mono);font-size:var(--lg);font-weight:600;color:var(--fg2);margin-top:8px}
+.tiers .p small{font-size:var(--xs);font-weight:400;color:var(--fg2)}
+.tiers .d{font-size:var(--xs);color:var(--fg2);margin-top:9px;line-height:1.6}
+footer{border-top:1px solid var(--line);background:var(--ink2);margin-top:56px}
+footer .in{max-width:var(--wrap);margin:0 auto;padding:26px 22px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center;font-size:var(--xs);color:var(--fg2)}
+footer a{color:var(--fg2);text-decoration:none}
+footer a:hover,footer a:focus-visible{color:var(--acc)}
+footer .links{display:flex;flex-wrap:wrap;gap:20px}
+.stamp{font-family:var(--mono);color:var(--fg2)}
+.attrib{max-width:var(--wrap);margin:0 auto;padding:0 22px 26px;font-size:var(--xs);color:var(--fg2);line-height:1.6}
+@media(max-width:640px){.status>div{grid-template-columns:1fr;gap:6px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}</style>
+<script type="module" src="/amp-nav.js"></script></head><body>
+<div class="band"><span class="where">Agentelic is the <b>engineering</b> layer of ComputeDriven</span><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span><span class="covers">That rung covers the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today.</span></div>
+<amp-nav property="agentelic"></amp-nav>
+<div class="wrap">
 
-            /* Accent lines */
-            .accent-lines {
-                position: fixed;
-                inset: 0;
-                pointer-events: none;
-                z-index: 0;
-                overflow: hidden;
-            }
-            .accent-lines::before,
-            .accent-lines::after {
-                content: "";
-                position: absolute;
-                width: 1px;
-                height: 100vh;
-                background: linear-gradient(
-                    180deg,
-                    transparent,
-                    var(--b1) 30%,
-                    var(--b1) 70%,
-                    transparent
-                );
-            }
-            .accent-lines::before {
-                left: 15%;
-            }
-            .accent-lines::after {
-                right: 15%;
-            }
-            .accent-orb {
-                position: fixed;
-                width: 500px;
-                height: 500px;
-                border-radius: 50%;
-                pointer-events: none;
-                z-index: 0;
-                filter: blur(100px);
-                opacity: 0.3;
-            }
-            .accent-orb.o1 {
-                background: var(--vg);
-                top: -10%;
-                left: 60%;
-                animation: drift 25s ease-in-out infinite alternate;
-            }
-            .accent-orb.o2 {
-                background: var(--wd);
-                bottom: -10%;
-                right: 60%;
-                animation: drift 30s ease-in-out infinite alternate-reverse;
-            }
-            @keyframes drift {
-                0% {
-                    transform: translate(0, 0);
-                }
-                100% {
-                    transform: translate(40px, -40px);
-                }
-            }
+<div class="top"><a class="logo" href="/">agent<span>elic</span></a>
+<nav><a href="#answers">What answers</a><a href="#hashes">The hashes</a><a href="#built">Built &amp; not built</a><a href="#do">What you can do</a></nav></div>
 
-            .page {
-                position: relative;
-                z-index: 1;
-            }
+<section class="hero">
+<div class="front">
+<div class="eyebrow">The question this site exists to answer</div>
+<h1>What can a build actually <em>prove</em> about an agent?</h1>
+<p class="lede">Almost every claim an agent builder makes about itself is a claim you have to take on trust — that the tests ran, that the artifact is the one that was tested, that the thing deployed is the thing built. <strong>One of those is different.</strong> Agentelic's code templates are pinned by the SHA-256 of their own contents, so the deployed server's answer can be re-derived by anyone who can read this repository. This page does that at build time and refuses to publish if the numbers move. Everything else here is trust, and it is labelled.</p>
+<div class="btns">
+<a class="btn" href="#hashes">See the reproduction</a>
+<a class="btn ghost" href="#built">What is not built</a>
+</div>
+</div>
+<!-- The identifying animation (SHELL.md §8). It comes AFTER the h1 in source
+     order and sits behind it, because the question comes first. It renders no
+     data and asserts nothing: /idanim.js takes no input from this document and
+     writes nothing back into it. The static plates below are plain markup, so
+     with JavaScript off the pipeline is still drawn — only the units are gone.
+     Delete the script tag at the foot of this file and every figure, chip,
+     status row and hash on this page is still here. -->
+<div class="idanim" data-identity-animation aria-hidden="true">
+<svg viewBox="0 0 300 460" preserveAspectRatio="xMidYMid meet" focusable="false">
+<line x1="150" y1="40" x2="150" y2="420" stroke="var(--line2)" stroke-width="1"></line>
+<g fill="none" stroke="var(--line2)" stroke-width="1">
+<rect x="94" y="27" width="112" height="26" rx="6"></rect>
+<rect x="94" y="74.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="122" width="112" height="26" rx="6"></rect>
+<rect x="94" y="169.5" width="112" height="26" rx="6"></rect>
+<rect x="84" y="217" width="132" height="26" rx="6" stroke="var(--warn)" stroke-dasharray="4 4"></rect>
+<rect x="94" y="264.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="312" width="112" height="26" rx="6"></rect>
+<rect x="94" y="359.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="407" width="112" height="26" rx="6"></rect>
+</g>
+<g id="ident-units"></g>
+</svg>
+</div>
+</section>
 
-            /* Nav */
-            nav {
-                position: sticky;
-                top: 0;
-                z-index: 50;
-                background: rgba(8, 8, 10, 0.9);
-                backdrop-filter: blur(14px);
-                border-bottom: 1px solid var(--b1);
-            }
-            .nav-w {
-                max-width: 1040px;
-                margin: 0 auto;
-                padding: 0 2rem;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                height: 54px;
-            }
-            .nav-l {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 22px;
-                font-weight: 400;
-                letter-spacing: -0.02em;
-            }
-            .nav-l span {
-                color: var(--v);
-            }
-            .nav-r {
-                display: flex;
-                align-items: center;
-                gap: 1.5rem;
-            }
-            .nav-r a {
-                font-size: 15px;
-                color: var(--t3);
-                letter-spacing: 0.06em;
-                font-weight: 400;
-                transition: color 0.2s;
-            }
-            .nav-r a:hover {
-                color: var(--v);
-            }
-            .nav-r .cta {
-                color: var(--v);
-                border: 1px solid rgba(180, 160, 232, 0.3);
-                padding: 5px 14px;
-                border-radius: 4px;
-                font-weight: 500;
-            }
-            .nav-r .cta:hover {
-                background: rgba(180, 160, 232, 0.06);
-            }
+<div class="grid plate">
+<div><div class="n">10</div><div class="l">MCP tools answering</div><div class="w">tools/list on the deployed server, 2026-08-16. AGENTS.md in this repository still lists 7 as &quot;planned&quot;; the deployed surface has ten.</div></div>
+<div><div class="n">66</div><div class="l">Tests, 0 failures</div><div class="w">mix test in this repository, 2026-08-16, with the :db tag excluded by default.</div></div>
+<div><div class="n">2</div><div class="l">Template hashes reproduced</div><div class="w">Both recomputed from priv/templates/ at build time and compared against what the deployed server returned.</div></div>
+<div><div class="n q">1</div><div class="l">Deployed read path returning 500</div><div class="w">GET /api/agents. Not a missing feature — a fault in something that shipped.</div></div>
+<div><div class="n q">0</div><div class="l">Ways to pay for this</div><div class="w">No checkout, no account, no billing. Zero matches for stripe/checkout/billing/subscription across lib/, test/ and config/.</div></div>
+</div>
 
-            .wrap {
-                max-width: 1040px;
-                margin: 0 auto;
-                padding: 0 2rem;
-            }
+<section id="answers">
+<div class="eyebrow">Measured, not assumed</div>
+<h2>Six requests, and two of them fail.</h2>
+<p class="lede">Every row below is one request that was actually issued on 2026-08-16, with the status it returned. They are frozen observations with a date on them — this page makes no network call and does not pretend to be a live dashboard. Two rows are failures, and they are the two that decide what the rest of this site is allowed to claim.</p>
+<div class="scroll"><table>
+<thead><tr><th>Request, as issued</th><th>Returned</th><th>What it establishes</th></tr></thead>
+<tbody>
+<tr><td class="code">POST https://app.agentelic.com/mcp  {&quot;method&quot;:&quot;tools/list&quot;}</td><td class="st ok">200</td><td class="wide">A deployed process answers JSON-RPC and enumerates 10 tools.</td></tr>
+<tr><td class="code">POST https://app.agentelic.com/mcp  tools/call template_list</td><td class="st ok">200</td><td class="wide">It returns 2 templates, each with a SHA-256 — both recomputed below.</td></tr>
+<tr><td class="code">POST https://app.agentelic.com/mcp  tools/call agent_status (unknown id)</td><td class="st ok">-32602</td><td class="wide">The tool dispatched and refused by name. It does NOT establish that the database was reached.</td></tr>
+<tr><td class="code">GET  https://app.agentelic.com/api/agents</td><td class="st bad">500</td><td class="wide">The register of built agents cannot be read. This is the fault that caps the whole surface.</td></tr>
+<tr><td class="code">GET  https://app.agentelic.com/api/agents?workspace_id=probe</td><td class="st bad">400</td><td class="wide">Still no read path. A different failure, not a working one.</td></tr>
+<tr><td class="code">GET  https://app.agentelic.com/</td><td class="st ok">404</td><td class="wide">By design — lib/agentelic_web/router.ex declares POST routes only. A 404 here is the app answering, not the app being down.</td></tr>
+</tbody></table></div>
+<p class="lede sm">The 404 is the interesting one. <code>lib/agentelic_web/router.ex</code> declares POST routes only, so a browser hitting the root of the deployed app gets a 404 from a perfectly healthy service. That is exactly the shape of evidence that gets misread as a dead deployment, in both directions — which is why the check that settles it is a POST, printed in full further down.</p>
+</section>
 
-            /* Hero — editorial layout */
-            .hero {
-                padding: 8rem 0 5rem;
-                text-align: center;
-                position: relative;
-            }
-            .hero-kicker {
-                font-size: 14px;
-                font-weight: 600;
-                letter-spacing: 0.3em;
-                text-transform: uppercase;
-                color: var(--v);
-                margin-bottom: 1.25rem;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 0.2s forwards;
-            }
-            .hero h1 {
-                font-family: "Cormorant Garamond", serif;
-                font-size: clamp(3.2rem, 8vw, 6rem);
-                font-weight: 300;
-                line-height: 1;
-                letter-spacing: -0.04em;
-                max-width: 800px;
-                margin: 0 auto;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 0.35s forwards;
-            }
-            .hero h1 em {
-                font-style: italic;
-                color: var(--w);
-            }
-            .hero-rule {
-                width: 60px;
-                height: 1px;
-                background: var(--b3);
-                margin: 1.5rem auto;
-                opacity: 0;
-                animation: fadeUp 0.6s ease 0.5s forwards;
-            }
-            .hero-sub {
-                font-family: "Cormorant Garamond", serif;
-                font-size: clamp(1.1rem, 2vw, 1.4rem);
-                font-weight: 300;
-                font-style: italic;
-                color: var(--t2);
-                max-width: 500px;
-                margin: 0 auto;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 0.55s forwards;
-            }
-            .hero-desc {
-                font-size: 16px;
-                font-weight: 300;
-                color: var(--t3);
-                max-width: 440px;
-                margin: 1.5rem auto 0;
-                line-height: 1.8;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 0.7s forwards;
-            }
+<section id="hashes">
+<div class="eyebrow">The one claim you can falsify without us</div>
+<h2>The deployed server said these hashes. This page recomputed them.</h2>
+<p class="lede">A template is a directory of files. Agentelic identifies each one by the SHA-256 of every regular file inside it, sorted and concatenated — <code>compute_template_hash/1</code> in <code>lib/agentelic/templates/registry.ex</code>. The deployed MCP server returns that hash when you ask it for the template list. <strong>The same algorithm runs in this page's build</strong>, over the files in this repository, and the build exits non-zero if a single byte has moved. So the row below is not copied from anywhere: it is computed, and the frozen record is what it is checked against.</p>
+<div class="scroll"><table>
+<thead><tr><th>Template</th><th>Files</th><th>SHA-256, recomputed here</th><th>Deployed</th></tr></thead>
+<tbody>
+<tr><td class="code">elixir/mcp-server</td><td class="wide">lib/agent.ex.eex<br>mix.exs.eex<br>template.json</td><td class="hash">251e82ed7ade466985396271ecad5c34d6411a8e940747bee49c8cc599098ae7</td><td class="st ok">match</td></tr>
+<tr><td class="code">typescript/mcp-server</td><td class="wide">package.json.eex<br>src/agent.ts.eex<br>template.json</td><td class="hash">018d6a172272e5748bc0bb56b238b04145923f267cd49cb36c1090f713568c2b</td><td class="st ok">match</td></tr>
+</tbody></table></div>
+<p class="lede sm">This is the whole of what content addressing buys, stated plainly: it does not make the template good, and it does not mean anyone has used it. It means the deployed service and this repository cannot silently disagree about what the template <em>is</em>. Do it yourself:</p>
+<pre><code><span class="c"># what the deployed server says</span>
+curl -s -X POST -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"template_list","arguments":{}}}' \
+  https://app.agentelic.com/mcp
 
-            .hero-nums {
-                display: flex;
-                justify-content: center;
-                gap: 4rem;
-                margin-top: 3rem;
-                flex-wrap: wrap;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 0.85s forwards;
-            }
-            .hero-num {
-                text-align: center;
-            }
-            .hero-num .val {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 2.8rem;
-                font-weight: 300;
-                display: block;
-                line-height: 1.1;
-                letter-spacing: -0.03em;
-            }
-            .hero-num .val span {
-                color: var(--v);
-            }
-            .hero-num .lbl {
-                font-size: 13px;
-                letter-spacing: 0.15em;
-                text-transform: uppercase;
-                color: var(--t4);
-                margin-top: 4px;
-                font-weight: 500;
-            }
+<span class="c"># what this repository says — the same algorithm, offline</span>
+node build-site.mjs   <span class="c">// refuses to emit the page on a mismatch</span></code></pre>
+</section>
 
-            .hero-acts {
-                display: flex;
-                justify-content: center;
-                gap: 0.75rem;
-                margin-top: 2.5rem;
-                flex-wrap: wrap;
-                opacity: 0;
-                animation: fadeUp 0.8s ease 1s forwards;
-            }
-            .btn {
-                font-family: "Archivo", sans-serif;
-                font-size: 15px;
-                font-weight: 500;
-                padding: 10px 22px;
-                border-radius: 5px;
-                transition: all 0.25s;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                letter-spacing: 0.02em;
-            }
-            .btn-v {
-                background: var(--v);
-                color: var(--bg);
-                border: none;
-            }
-            .btn-v:hover {
-                box-shadow: 0 0 28px rgba(180, 160, 232, 0.3);
-                transform: translateY(-1px);
-            }
-            .btn-o {
-                border: 1px solid var(--b2);
-                color: var(--t2);
-                background: transparent;
-            }
-            .btn-o:hover {
-                border-color: var(--v);
-                color: var(--v);
-            }
+<section id="built">
+<div class="eyebrow">Rung by rung, not overall</div>
+<h2>One surface, four different amounts of evidence.</h2>
+<p class="lede">A single status for a whole product is a lie by averaging. Each capability below carries its own rung, and the invitation this page is allowed to make about it follows from that rung mechanically — the build refuses to emit a call to action the rung has not earned. Where something is unbuilt, the row says what would have to happen, rather than a date.</p>
+<div class="grid">
+<div><div class="head"><h3>MCP tool surface</h3><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span></div><p>Ten tools, JSON-RPC over POST /mcp, answering on the deployed host today. tools/list and template_list return real payloads.</p></div>
+<div><div class="head"><h3>Content-addressed template registry</h3><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span></div><p>Templates are pinned by the SHA-256 of their own contents. This is the one claim on the domain a stranger can falsify without our cooperation: clone the repo, hash the directory, compare.</p><div class="needs"><b>Needs:</b> Nothing. Run the hash yourself.</div></div>
+<div><div class="head"><h3>Build pipeline — parse, generate, compile, package</h3><span class="rung" data-rung="in_tree" title="spec · in_tree · live_local · live_deployed · external">in_tree</span></div><p>lib/agentelic/pipeline/ with an orchestrator that stages the four steps, covered by the test suite.</p><div class="needs"><b>Needs:</b> A deployed run anyone can point at. It writes to the database, and the database read path is the 500 above.</div></div>
+<div><div class="head"><h3>Deterministic test intake and runner</h3><span class="rung" data-rung="in_tree" title="spec · in_tree · live_local · live_deployed · external">in_tree</span></div><p>lib/agentelic/testing/ compiles acceptance criteria into cases and runs them.</p><div class="needs"><b>Needs:</b> The same. Nothing outside this tree has exercised it.</div></div>
+<div><div class="head"><h3>Staged deployment with governance gates</h3><span class="rung" data-rung="spec" title="spec · in_tree · live_local · live_deployed · external">spec</span></div><p>staging → canary → production with gates is in docs/spec/README.md. There is no deployment record anyone can read.</p><div class="needs"><b>Needs:</b> An implementation, and a deployment whose gates refused something.</div></div>
+<div><div class="head"><h3>Accounts, seats, billing</h3><span class="rung" data-rung="spec" title="spec · in_tree · live_local · live_deployed · external">spec</span></div><p>Priced on this page and built nowhere. There is no checkout, no account model and no billing code in the source.</p><div class="needs"><b>Needs:</b> A ruling on whether Agentelic sells anything at all — flagged [TRAVIS].</div></div>
+</div>
 
-            @keyframes fadeUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(18px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
+<h3 class="mt">Status of this surface</h3>
+<dl class="status">
+<div><dt>Status</dt><dd><strong>live_deployed</strong> — The MCP server is deployed and answering. Its content-addressed template registry is the one artifact on this domain whose claim can be checked from outside: the SHA-256 the deployed server returns for each template is recomputed here from the files in this repository, and the build refuses to emit a page when they disagree.</dd></div>
+<div><dt>Last verified</dt><dd>2026-08-16</dd></div>
+<div><dt>Source</dt><dd>Measured 2026-08-16. POST https://app.agentelic.com/mcp with tools/list → HTTP 200, 10 tools; with tools/call template_list → 2 templates and their hashes. mix test → 66 tests, 0 failures. build-site.mjs recomputes both hashes with the algorithm in lib/agentelic/templates/registry.ex.</dd></div>
+<div class="limit"><dt>Limit</dt><dd>This establishes that a deployed process answers and that two template hashes are reproducible. It does not establish that anyone has built an agent with it: the persistence layer behind GET /api/agents returns HTTP 500 on the deployed app, so the register of built agents cannot even be read, and every tool that writes one is therefore unverified from outside. Nothing here is for sale — there is no checkout, no account and no billing code anywhere in the source.</dd></div>
+<div><dt>Next rung</dt><dd><strong>external</strong> — Someone who is not us builds an agent through the deployed MCP surface and reports the artifact hash. That first needs the persistence fault below fixed, because the pipeline cannot record a build it cannot write.</dd></div>
+</dl>
 
-            /* Sections */
-            section {
-                padding: 5rem 0;
-                border-top: 1px solid var(--b1);
-            }
-            .sec-kicker {
-                font-size: 13px;
-                font-weight: 600;
-                letter-spacing: 0.3em;
-                text-transform: uppercase;
-                color: var(--t4);
-                margin-bottom: 0.75rem;
-            }
-            section h2 {
-                font-family: "Cormorant Garamond", serif;
-                font-size: clamp(1.8rem, 3.5vw, 2.8rem);
-                font-weight: 300;
-                letter-spacing: -0.025em;
-                line-height: 1.15;
-            }
-            .prose {
-                font-size: 17px;
-                font-weight: 300;
-                color: var(--t2);
-                max-width: 540px;
-                line-height: 1.9;
-            }
-            .prose + .prose {
-                margin-top: 0.75rem;
-            }
-            .prose strong {
-                color: var(--t1);
-                font-weight: 500;
-            }
+<div class="retract"><h3>What used to be here</h3><p>Two claims used to stand on this page and both are gone rather than softened. The Distribution card sold FleetPrompt as a marketplace where agents are “Community-reviewed, trust-scored, ready for install” — fleetprompt.com now records that model as superseded, its replacement as not built, and its second publisher as none, so all three parts of that sentence were false at once. And the pricing section was headed “Start building today” above an email address, which invited a purchase that has no checkout behind it and a correspondence that has no mailbox. The heading is gone, the address is gone, and the prices are still here with the word proposed on them.</p></div>
+</section>
 
-            /* Three pillars */
-            .pillars {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1px;
-                background: var(--b1);
-                border: 1px solid var(--b1);
-                border-radius: 8px;
-                overflow: hidden;
-                margin-top: 2.5rem;
-            }
-            .pillar {
-                background: var(--bg);
-                padding: 2.5rem;
-                position: relative;
-                transition: background 0.3s;
-            }
-            .pillar:hover {
-                background: var(--s1);
-            }
-            .pillar::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 2px;
-                background: linear-gradient(90deg, var(--v), var(--w));
-                opacity: 0;
-                transition: opacity 0.3s;
-            }
-            .pillar:hover::before {
-                opacity: 1;
-            }
-            .pillar .n {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 3rem;
-                font-weight: 300;
-                color: var(--t4);
-                line-height: 1;
-                margin-bottom: 0.75rem;
-            }
-            .pillar h4 {
-                font-size: 14px;
-                font-weight: 600;
-                letter-spacing: 0.15em;
-                text-transform: uppercase;
-                color: var(--v);
-                margin-bottom: 0.5rem;
-            }
-            .pillar p {
-                font-size: 16px;
-                font-weight: 300;
-                color: var(--t2);
-                line-height: 1.8;
-            }
+<section id="pricing">
+<div class="eyebrow">Proposed, and flagged</div>
+<h2>Proposed pricing — nothing is for sale, and no part of this is built</h2>
+<p class="lede">These prices were on this page in the shape of a price list, under a heading that invited you to begin and an email address to begin through. There is no checkout behind them, no account, no seat, and no billing code anywhere in the source — <b>0 ways to pay for this</b>. They are kept visible and labelled rather than deleted, because a proposal you can argue with is worth more than a silent gap. Whether Agentelic sells anything at all is <b>[TRAVIS]</b>, and this page does not decide it.</p>
+<div class="tiers">
+<div><div class="l">Builder</div><div class="p">$49<small>/mo</small></div><div class="d">5 agents · spec-driven design · deterministic testing · local deployment</div></div>
+<div><div class="l">Team</div><div class="p">$199<small>/seat/mo</small></div><div class="d">unlimited agents · staging and production · role-based access · compliance templates</div></div>
+<div><div class="l">Enterprise</div><div class="p">Custom</div><div class="d">dedicated infrastructure · SSO/SAML · custom compliance · SLA</div></div>
+</div>
+</section>
 
-            /* Callout */
-            .cta-box {
-                border: 1px solid var(--b2);
-                border-left: 3px solid var(--v);
-                border-radius: 0 8px 8px 0;
-                padding: 1.5rem 2rem;
-                background: var(--s1);
-                margin-top: 1.5rem;
-            }
-            .cta-box h3 {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 22px;
-                font-weight: 400;
-                margin-bottom: 0.3rem;
-            }
-            .cta-box p {
-                font-size: 16px;
-                color: var(--t2);
-                font-weight: 300;
-                line-height: 1.8;
-            }
+<section id="do">
+<div class="eyebrow">What you can do here</div>
+<h2>Three rungs, three different invitations.</h2>
+<p class="lede">A page may only ask you to do what its evidence has earned. The MCP surface is deployed and answering, so it asks you to call it. The pipeline is in the tree and tested, so it asks you to read it and run the tests. The rest is a specification, so it can only ask you to read, challenge or implement it — and never to run something that does not exist.</p>
+<div class="ctagroup"><div class="tag ok">live_deployed &mdash; answering on the deployed host today</div><div class="cta">
+<a href="#hashes"><span class="verb">Use the deployed artifact</span><span class="what">Ask the running MCP server for its template list and hash the directories yourself. Both values are above; if yours differ, one of us is wrong and the issue tracker is how you say so.</span></a>
+</div></div>
+<div class="ctagroup"><div class="tag">in_tree &mdash; written and tested here — nothing outside has run it</div><div class="cta">
+<a href="https://github.com/c-u-l8er/agentelic.com"><span class="verb">Inspect the source</span><span class="what"><code>lib/agentelic/pipeline/</code> stages parse, generate, compile and package; <code>lib/agentelic/testing/</code> compiles acceptance criteria into runnable cases.</span></a>
+<a href="https://github.com/c-u-l8er/agentelic.com"><span class="verb">Run the tests</span><span class="what"><code>mix deps.get &amp;&amp; mix test</code>. The count on this page came from that command on the date beside it, not from a badge.</span></a>
+</div></div>
+<div class="ctagroup"><div class="tag">spec &mdash; written down, and nothing runs</div><div class="cta">
+<a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md"><span class="verb">Read</span><span class="what">The product specification, including the staged-deployment gates that are not implemented. It carries a supersession banner: everything specifying Supabase is superseded and was not rewritten, because rewriting it would fabricate a review nobody performed.</span></a>
+<a href="https://github.com/c-u-l8er/agentelic.com/issues"><span class="verb">Challenge</span><span class="what">The pricing on this page prices something that does not exist, and it says so. If a rung here is generous, the fastest correction is an issue that names the row.</span></a>
+<a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md"><span class="verb">Implement</span><span class="what">The deployment gates are the interesting unbuilt part: a staged rollout that can <em>refuse</em>. Nothing in the tree refuses anything yet.</span></a>
+</div></div>
+</section>
 
-            /* Comparison */
-            .tbl {
-                margin-top: 2rem;
-                overflow-x: auto;
-                border: 1px solid var(--b1);
-                border-radius: 8px;
-            }
-            .tbl table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 15px;
-            }
-            .tbl thead th {
-                text-align: left;
-                font-weight: 600;
-                font-size: 13px;
-                letter-spacing: 0.12em;
-                text-transform: uppercase;
-                color: var(--t4);
-                padding: 10px 16px;
-                background: var(--s1);
-                border-bottom: 1px solid var(--b1);
-            }
-            .tbl tbody td {
-                padding: 9px 16px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-                color: var(--t2);
-                font-weight: 300;
-            }
-            .tbl tbody tr:hover td {
-                background: rgba(180, 160, 232, 0.02);
-                color: var(--t1);
-            }
-            .y {
-                color: var(--v);
-                font-weight: 500;
-            }
-            .n {
-                color: var(--t4);
-            }
-
-            /* Pricing */
-            .pricing {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1px;
-                background: var(--b1);
-                border: 1px solid var(--b1);
-                border-radius: 8px;
-                overflow: hidden;
-                margin-top: 2.5rem;
-            }
-            .plan {
-                background: var(--bg);
-                padding: 2.5rem;
-                position: relative;
-            }
-            .plan.feat {
-                background: var(--s1);
-            }
-            .plan.feat::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 2px;
-                background: linear-gradient(90deg, var(--v), var(--w));
-            }
-            .plan-label {
-                font-size: 13px;
-                font-weight: 600;
-                letter-spacing: 0.2em;
-                text-transform: uppercase;
-                color: var(--t4);
-                margin-bottom: 0.6rem;
-            }
-            .plan-price {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 2.4rem;
-                font-weight: 300;
-                letter-spacing: -0.02em;
-            }
-            .plan-price small {
-                font-size: 14px;
-                color: var(--t3);
-                font-family: "Archivo", sans-serif;
-            }
-            .plan-detail {
-                font-size: 15px;
-                color: var(--t3);
-                font-weight: 300;
-                line-height: 1.9;
-                margin-top: 1rem;
-            }
-
-            /* Ecosystem */
-            .eco {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1px;
-                background: var(--b1);
-                border: 1px solid var(--b1);
-                border-radius: 8px;
-                overflow: hidden;
-                margin-top: 2rem;
-            }
-            .eco-cd {
-                background: var(--bg);
-                padding: 2rem;
-                transition: background 0.2s;
-            }
-            .eco-cd:hover {
-                background: var(--s1);
-            }
-            .eco-cd h4 {
-                font-size: 13px;
-                text-transform: uppercase;
-                letter-spacing: 0.15em;
-                color: var(--v);
-                margin-bottom: 0.25rem;
-                font-weight: 600;
-            }
-            .eco-cd .nm {
-                font-family: "Cormorant Garamond", serif;
-                font-size: 18px;
-                font-weight: 400;
-                margin-bottom: 0.35rem;
-                letter-spacing: -0.01em;
-            }
-            .eco-cd p {
-                font-size: 15px;
-                color: var(--t3);
-                font-weight: 300;
-                line-height: 1.8;
-            }
-
-            /* Pipeline */
-            .pipeline {
-                margin-top: 2rem;
-                border: 1px solid var(--b1);
-                border-radius: 8px;
-                overflow: hidden;
-            }
-            .pipe-row {
-                display: flex;
-                align-items: stretch;
-                border-bottom: 1px solid var(--b1);
-            }
-            .pipe-row:last-child {
-                border-bottom: none;
-            }
-            .pipe-step {
-                flex: 0 0 100px;
-                padding: 14px 16px;
-                background: var(--s1);
-                font-size: 13px;
-                text-transform: uppercase;
-                letter-spacing: 0.12em;
-                color: var(--t4);
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                border-right: 1px solid var(--b1);
-            }
-            .pipe-desc {
-                padding: 14px 16px;
-                font-size: 16px;
-                color: var(--t2);
-                font-weight: 300;
-                line-height: 1.8;
-            }
-            .pipe-desc strong {
-                color: var(--t1);
-                font-weight: 500;
-            }
-            .pipe-arrow {
-                flex: 0 0 40px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: var(--t4);
-                font-size: 14px;
-            }
-
-            footer {
-                padding: 3rem 0;
-                border-top: 1px solid var(--b1);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-            footer p {
-                font-size: 14px;
-                color: var(--t4);
-            }
-            footer a {
-                color: var(--v);
-            }
-
-            @media (max-width: 800px) {
-                .pillars,
-                .pricing,
-                .eco {
-                    grid-template-columns: 1fr;
-                }
-                .hero-nums {
-                    gap: 2rem;
-                }
-                .hero {
-                    padding: 5rem 0 3rem;
-                }
-                .nav-r a:not(.cta) {
-                    display: none;
-                }
-                .pipe-row {
-                    flex-direction: column;
-                }
-                .pipe-step {
-                    border-right: none;
-                    border-bottom: 1px solid var(--b1);
-                }
-                .pipe-arrow {
-                    display: none;
-                }
-            }
-        </style>
-        <script type="module" src="/amp-nav.js"></script>
-    </head>
-    <body>
-        <amp-nav property="agentelic"></amp-nav>
-        <div class="accent-lines"></div>
-        <div class="accent-orb o1"></div>
-        <div class="accent-orb o2"></div>
-        <div class="page">
-            <nav>
-                <div class="nav-w">
-                    <a href="#" class="nav-l">Agent<span>elic</span></a>
-                    <div class="nav-r">
-                        <a href="#problem">Problem</a>
-                        <a href="#method">Method</a>
-                        <a href="#compare">Compare</a>
-                        <a href="#pricing">Pricing</a>
-                        <a href="https://docs.agentelic.com">Docs</a>
-                        <a href="#" class="cta">Early Access</a>
-                    </div>
-                </div>
-            </nav>
-
-            <div class="wrap">
-                <!-- HERO -->
-                <div class="hero">
-                    <div class="hero-kicker">Enterprise Agent Engineering</div>
-                    <h1>Agents that <em>ship.</em></h1>
-                    <div class="hero-rule"></div>
-                    <p class="hero-sub">
-                        The engineering discipline your AI agents have been
-                        missing.
-                    </p>
-                    <p class="hero-desc">
-                        Spec-driven design. Deterministic testing. Governed
-                        deployment. Built on OpenSentience. Distributed via
-                        FleetPrompt. No vendor lock-in.
-                    </p>
-                    <div class="hero-nums">
-                        <div class="hero-num">
-                            <span class="val">57<span>%</span></span
-                            ><span class="lbl"
-                                >Agents Now<br />in Production</span
-                            >
-                        </div>
-                        <div class="hero-num">
-                            <span class="val">32<span>%</span></span
-                            ><span class="lbl"
-                                >Cite Quality<br />as #1 Blocker</span
-                            >
-                        </div>
-                        <div class="hero-num">
-                            <span class="val">$48<span>B</span></span
-                            ><span class="lbl">Agent Market<br />by 2030</span>
-                        </div>
-                    </div>
-                    <div class="hero-acts">
-                        <a href="#" class="btn btn-v">Request Early Access →</a>
-                        <a href="https://docs.agentelic.com" class="btn btn-o">Documentation</a>
-                        <a href="#method" class="btn btn-o">See How It Works</a>
-                    </div>
-                </div>
-
-                <!-- PROBLEM -->
-                <section id="problem">
-                    <div class="sec-kicker">The Gap</div>
-                    <h2>
-                        The industry builds demos.<br />Enterprises need
-                        production.
-                    </h2>
-                    <div
-                        style="
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 2rem;
-                            margin-top: 1.5rem;
-                        "
-                    >
-                        <div>
-                            <p class="prose">
-                                57% of organizations have agents in production,
-                                but
-                                <strong
-                                    >32% cite quality as the #1 barrier</strong
-                                >
-                                (LangChain, 2026). Gartner predicts over 40% of
-                                agentic AI projects will be scrapped by 2027 —
-                                not because the models fail, but because they
-                                aren't engineered for reality.
-                            </p>
-                            <p class="prose">
-                                20+ no-code builders optimize for impressive
-                                first demos. Enterprise platforms like
-                                <strong>OpenAI Frontier</strong> and
-                                <strong>Salesforce AgentForce</strong> provide
-                                governance but demand total lock-in. Neither
-                                serves engineering teams that need reliability.
-                            </p>
-                        </div>
-                        <div>
-                            <div class="cta-box">
-                                <h3>OpenAI Frontier (Feb 2026)</h3>
-                                <p>
-                                    OpenAI's enterprise agent platform treats
-                                    agents as "AI coworkers." Fortune calls it
-                                    OpenAI's bid to become the "operating system
-                                    of the enterprise." Agentelic provides the
-                                    same rigor — without the lock-in, on your
-                                    own infrastructure.
-                                </p>
-                            </div>
-                            <div
-                                class="cta-box"
-                                style="
-                                    margin-top: 0.75rem;
-                                    border-left-color: var(--w);
-                                "
-                            >
-                                <h3>Next Moca ADL (Feb 2026)</h3>
-                                <p>
-                                    InfoQ reported on Agent Definition Language
-                                    — a vendor-neutral spec for agents.
-                                    Validates SpecPrompt's thesis: the industry
-                                    needs a standard definition layer.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- METHOD -->
-                <section id="method">
-                    <div class="sec-kicker">Three Pillars</div>
-                    <h2>Engineering-grade agent development</h2>
-                    <div class="pillars">
-                        <div class="pillar">
-                            <div class="n">01</div>
-                            <h4>Spec-Driven Design</h4>
-                            <p>
-                                Every agent starts from a SpecPrompt
-                                specification — behavior contracts, acceptance
-                                criteria, boundary conditions. The spec is the
-                                source of truth, not the prompt. AWS Kiro,
-                                GitHub Spec Kit, and Thoughtworks all validate
-                                SDD.
-                            </p>
-                        </div>
-                        <div class="pillar">
-                            <div class="n">02</div>
-                            <h4>Deterministic Testing</h4>
-                            <p>
-                                Agents tested against specs with reproducible
-                                scenarios. Every tool call mocked, every output
-                                validated. Regression suites catch drift before
-                                production. No more "it worked when I tried it."
-                            </p>
-                        </div>
-                        <div class="pillar">
-                            <div class="n">03</div>
-                            <h4>Governed Deployment</h4>
-                            <p>
-                                Staged rollouts with canary testing. Permission
-                                review gates. Compliance checks. Full audit
-                                trail from spec to production. Rollback any
-                                version in seconds.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- PIPELINE -->
-                <section>
-                    <div class="sec-kicker">Build Pipeline</div>
-                    <h2>From spec to production</h2>
-                    <div class="pipeline">
-                        <div class="pipe-row">
-                            <div class="pipe-step">Define</div>
-                            <div class="pipe-desc">
-                                <strong>SPEC.md</strong> — Write or generate the
-                                agent specification. Purpose, capabilities,
-                                constraints, acceptance tests. Versioned in git.
-                            </div>
-                            <div class="pipe-arrow">→</div>
-                        </div>
-                        <div class="pipe-row">
-                            <div class="pipe-step">Build</div>
-                            <div class="pipe-desc">
-                                <strong>Code generation</strong> — Spec parsed
-                                into agent scaffolding. MCP tools wired.
-                                Permissions declared. Graphonomous memory
-                                connected.
-                            </div>
-                            <div class="pipe-arrow">→</div>
-                        </div>
-                        <div class="pipe-row">
-                            <div class="pipe-step">Test</div>
-                            <div class="pipe-desc">
-                                <strong>Deterministic testing</strong> — Every
-                                tool call mocked against spec. Regression
-                                suites. Boundary testing. 89% of production
-                                teams use observability; we make testing equally
-                                rigorous.
-                            </div>
-                            <div class="pipe-arrow">→</div>
-                        </div>
-                        <div class="pipe-row">
-                            <div class="pipe-step">Deploy</div>
-                            <div class="pipe-desc">
-                                <strong>Staged rollout</strong> — Staging →
-                                Canary → Production. Permission gates.
-                                Compliance review. Deployed to OpenSentience
-                                runtime. One-command rollback.
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- COMPARISON -->
-                <section id="compare">
-                    <div class="sec-kicker">Differentiation</div>
-                    <h2>Why not the alternatives?</h2>
-                    <p class="prose">
-                        The market optimizes for time-to-first-demo. Agentelic
-                        optimizes for time-to-reliable-production.
-                    </p>
-                    <div class="tbl">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>Agentelic</th>
-                                    <th>No-Code Builders</th>
-                                    <th>OpenAI Frontier</th>
-                                    <th>Dev Frameworks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Spec-driven design</td>
-                                    <td class="y">SpecPrompt built-in</td>
-                                    <td class="n">None</td>
-                                    <td class="n">None</td>
-                                    <td class="n">Manual</td>
-                                </tr>
-                                <tr>
-                                    <td>Deterministic testing</td>
-                                    <td class="y">First-class</td>
-                                    <td class="n">None</td>
-                                    <td>Eval loops</td>
-                                    <td class="n">DIY</td>
-                                </tr>
-                                <tr>
-                                    <td>Versioned deployment</td>
-                                    <td class="y">Git-native</td>
-                                    <td class="n">Overwrite</td>
-                                    <td>Versioned</td>
-                                    <td class="n">Manual CI/CD</td>
-                                </tr>
-                                <tr>
-                                    <td>Compliance & audit</td>
-                                    <td class="y">Templates built-in</td>
-                                    <td class="n">None</td>
-                                    <td>IAM-based</td>
-                                    <td class="n">Custom</td>
-                                </tr>
-                                <tr>
-                                    <td>Runtime</td>
-                                    <td class="y">OpenSentience (local)</td>
-                                    <td class="n">Cloud-only</td>
-                                    <td class="n">OpenAI cloud</td>
-                                    <td>Varies</td>
-                                </tr>
-                                <tr>
-                                    <td>Protocol</td>
-                                    <td class="y">MCP native</td>
-                                    <td class="n">Plugins</td>
-                                    <td>OpenAI API</td>
-                                    <td>Varies</td>
-                                </tr>
-                                <tr>
-                                    <td>Continual learning</td>
-                                    <td class="y">Graphonomous</td>
-                                    <td class="n">None</td>
-                                    <td>Feedback loops</td>
-                                    <td class="n">None</td>
-                                </tr>
-                                <tr>
-                                    <td>Vendor lock-in</td>
-                                    <td class="y">None</td>
-                                    <td>Medium</td>
-                                    <td class="n">OpenAI</td>
-                                    <td>Minimal</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- PRICING -->
-                <section id="pricing">
-                    <div class="sec-kicker">Pricing</div>
-                    <h2>Start building today</h2>
-                    <div class="pricing">
-                        <div class="plan">
-                            <div class="plan-label">Builder</div>
-                            <div class="plan-price">$49<small>/mo</small></div>
-                            <div class="plan-detail">
-                                5 agents · Spec-driven design · Deterministic
-                                testing · Local deployment via OpenSentience ·
-                                Community support
-                            </div>
-                        </div>
-                        <div class="plan feat">
-                            <div class="plan-label">Team</div>
-                            <div class="plan-price">
-                                $199<small>/seat/mo</small>
-                            </div>
-                            <div class="plan-detail">
-                                Unlimited agents · Staging + production ·
-                                Role-based access · Compliance templates ·
-                                Graphonomous integration · Priority support
-                            </div>
-                        </div>
-                        <div class="plan">
-                            <div class="plan-label">Enterprise</div>
-                            <div class="plan-price">Custom</div>
-                            <div class="plan-detail">
-                                Dedicated infrastructure · SSO/SAML · Custom
-                                compliance · SLA guarantees · Managed
-                                Graphonomous · White-glove onboarding
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- ECOSYSTEM -->
-                <section>
-                    <div class="sec-kicker">[&] Ecosystem</div>
-                    <h2>Integrated by design</h2>
-                    <div class="cta-box">
-                        <h3>The Full Pipeline</h3>
-                        <p>
-                            <strong>SpecPrompt</strong> defines the contract →
-                            <strong>Agentelic</strong> builds, tests, deploys →
-                            <strong>OpenSentience</strong> runs with governance
-                            → <strong>Graphonomous</strong> provides memory →
-                            <strong>FleetPrompt</strong> distributes →
-                            <strong>Delegatic</strong> orchestrates multi-agent
-                            systems.
-                        </p>
-                    </div>
-                    <div class="eco">
-                        <div class="eco-cd">
-                            <h4>Standards</h4>
-                            <div class="nm">SpecPrompt</div>
-                            <p>
-                                SPEC.md files define behavior, constraints, and
-                                acceptance tests that drive the build pipeline.
-                            </p>
-                        </div>
-                        <div class="eco-cd">
-                            <h4>Runtime</h4>
-                            <div class="nm">OpenSentience</div>
-                            <p>
-                                Local-first execution with process isolation,
-                                fine-grained permissions, and full audit trails.
-                            </p>
-                        </div>
-                        <div class="eco-cd">
-                            <h4>Memory</h4>
-                            <div class="nm">Graphonomous</div>
-                            <p>
-                                Knowledge graphs that grow with use. Agents
-                                learn from production without retraining.
-                            </p>
-                        </div>
-                        <div class="eco-cd">
-                            <h4>Distribution</h4>
-                            <div class="nm">FleetPrompt</div>
-                            <p>
-                                The trust-scored registry was built and is
-                                <em>superseded</em>. Its replacement — install
-                                gated on a replay — is not built, the
-                                publish/verify/install CLI is not built, and
-                                nobody but us has sealed a listing.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="wrap">
-                <footer>
-                    <p>
-                        &copy; 2026
-                        <a href="https://ampersandboxdesign.com"
-                            >[&] Ampersand Box Design</a
-                        >
-                    </p>
-                    <p>
-                        agentelic.com ·
-                        <a href="mailto:hello@agentelic.com">Contact</a>
-                    </p>
-                </footer>
-            </div>
-        </div>
-    </body>
-</html>
+</div>
+<footer><div class="in">
+<div>&copy; 2026 Agentelic&ensp;·&ensp;<a href="/">What can a build actually prove about an agent?</a></div>
+<div class="links"><a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md">Spec</a><a href="https://github.com/c-u-l8er/agentelic.com">Source</a><a href="https://github.com/c-u-l8er/agentelic.com/issues">Challenge a claim</a><a href="https://computedriven.com">ComputeDriven</a><a href="https://ampersandboxdesign.com">[&amp;]</a></div>
+</div>
+<p class="attrib"><span class="stamp">agentelic 0.3.0 · record 2026-08-16 · built 2026-08-17</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the issue tracker — there is no email address on this site, and no form, because neither has been set up rather than because we would not like one.</p>
+</footer>
+<script src="/idanim.js" defer></script>
+</body></html>

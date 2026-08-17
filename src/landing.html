@@ -1,0 +1,114 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{QUESTION}} — Agentelic</title>
+<meta name="description" content="Agentelic builds agents from a specification. Its deployed MCP surface pins every code template by the SHA-256 of its own contents — and this page recomputes both hashes from source rather than asking you to believe them. What that proves, and what it does not, is stated row by row.">
+<meta name="falsifiable-question" content="{{QUESTION}}">
+<link rel="canonical" href="{{ORIGIN}}/">
+<meta name="theme-color" content="#06080d">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>{{CSS}}</style>
+<script type="module" src="/amp-nav.js"></script></head><body>
+{{BAND}}
+<amp-nav property="agentelic"></amp-nav>
+<div class="wrap">
+
+<div class="top"><a class="logo" href="/">agent<span>elic</span></a>
+<nav><a href="#answers">What answers</a><a href="#hashes">The hashes</a><a href="#built">Built &amp; not built</a><a href="#do">What you can do</a></nav></div>
+
+<section class="hero">
+<div class="front">
+<div class="eyebrow">The question this site exists to answer</div>
+<h1>What can a build actually <em>prove</em> about an agent?</h1>
+<p class="lede">Almost every claim an agent builder makes about itself is a claim you have to take on trust — that the tests ran, that the artifact is the one that was tested, that the thing deployed is the thing built. <strong>One of those is different.</strong> Agentelic's code templates are pinned by the SHA-256 of their own contents, so the deployed server's answer can be re-derived by anyone who can read this repository. This page does that at build time and refuses to publish if the numbers move. Everything else here is trust, and it is labelled.</p>
+<div class="btns">
+<a class="btn" href="#hashes">See the reproduction</a>
+<a class="btn ghost" href="#built">What is not built</a>
+</div>
+</div>
+<!-- The identifying animation (SHELL.md §8). It comes AFTER the h1 in source
+     order and sits behind it, because the question comes first. It renders no
+     data and asserts nothing: /idanim.js takes no input from this document and
+     writes nothing back into it. The static plates below are plain markup, so
+     with JavaScript off the pipeline is still drawn — only the units are gone.
+     Delete the script tag at the foot of this file and every figure, chip,
+     status row and hash on this page is still here. -->
+<div class="idanim" data-identity-animation aria-hidden="true">
+<svg viewBox="0 0 300 460" preserveAspectRatio="xMidYMid meet" focusable="false">
+<line x1="150" y1="40" x2="150" y2="420" stroke="var(--line2)" stroke-width="1"></line>
+<g fill="none" stroke="var(--line2)" stroke-width="1">
+<rect x="94" y="27" width="112" height="26" rx="6"></rect>
+<rect x="94" y="74.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="122" width="112" height="26" rx="6"></rect>
+<rect x="94" y="169.5" width="112" height="26" rx="6"></rect>
+<rect x="84" y="217" width="132" height="26" rx="6" stroke="var(--warn)" stroke-dasharray="4 4"></rect>
+<rect x="94" y="264.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="312" width="112" height="26" rx="6"></rect>
+<rect x="94" y="359.5" width="112" height="26" rx="6"></rect>
+<rect x="94" y="407" width="112" height="26" rx="6"></rect>
+</g>
+<g id="ident-units"></g>
+</svg>
+</div>
+</section>
+
+{{PLATE}}
+
+<section id="answers">
+<div class="eyebrow">Measured, not assumed</div>
+<h2>Six requests, and two of them fail.</h2>
+<p class="lede">Every row below is one request that was actually issued on {{PROBE_DATE}}, with the status it returned. They are frozen observations with a date on them — this page makes no network call and does not pretend to be a live dashboard. Two rows are failures, and they are the two that decide what the rest of this site is allowed to claim.</p>
+{{PROBES}}
+<p class="lede sm">The 404 is the interesting one. <code>lib/agentelic_web/router.ex</code> declares POST routes only, so a browser hitting the root of the deployed app gets a 404 from a perfectly healthy service. That is exactly the shape of evidence that gets misread as a dead deployment, in both directions — which is why the check that settles it is a POST, printed in full further down.</p>
+</section>
+
+<section id="hashes">
+<div class="eyebrow">The one claim you can falsify without us</div>
+<h2>The deployed server said these hashes. This page recomputed them.</h2>
+<p class="lede">A template is a directory of files. Agentelic identifies each one by the SHA-256 of every regular file inside it, sorted and concatenated — <code>compute_template_hash/1</code> in <code>lib/agentelic/templates/registry.ex</code>. The deployed MCP server returns that hash when you ask it for the template list. <strong>The same algorithm runs in this page's build</strong>, over the files in this repository, and the build exits non-zero if a single byte has moved. So the row below is not copied from anywhere: it is computed, and the frozen record is what it is checked against.</p>
+{{HASHES}}
+<p class="lede sm">This is the whole of what content addressing buys, stated plainly: it does not make the template good, and it does not mean anyone has used it. It means the deployed service and this repository cannot silently disagree about what the template <em>is</em>. Do it yourself:</p>
+<pre><code><span class="c"># what the deployed server says</span>
+curl -s -X POST -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"template_list","arguments":{}}}' \
+  https://app.agentelic.com/mcp
+
+<span class="c"># what this repository says — the same algorithm, offline</span>
+node build-site.mjs   <span class="c">// refuses to emit the page on a mismatch</span></code></pre>
+</section>
+
+<section id="built">
+<div class="eyebrow">Rung by rung, not overall</div>
+<h2>One surface, four different amounts of evidence.</h2>
+<p class="lede">A single status for a whole product is a lie by averaging. Each capability below carries its own rung, and the invitation this page is allowed to make about it follows from that rung mechanically — the build refuses to emit a call to action the rung has not earned. Where something is unbuilt, the row says what would have to happen, rather than a date.</p>
+{{BUILT}}
+
+<h3 class="mt">Status of this surface</h3>
+{{STATUS}}
+
+{{RETRACTION}}
+</section>
+
+<section id="pricing">
+<div class="eyebrow">Proposed, and flagged</div>
+<h2>{{PRICING_HEAD}}</h2>
+<p class="lede">These prices were on this page in the shape of a price list, under a heading that invited you to begin and an email address to begin through. There is no checkout behind them, no account, no seat, and no billing code anywhere in the source — <b>{{PRICING_ZERO}}</b>. They are kept visible and labelled rather than deleted, because a proposal you can argue with is worth more than a silent gap. Whether Agentelic sells anything at all is <b>{{PRICING_FLAG}}</b>, and this page does not decide it.</p>
+{{PRICING}}
+</section>
+
+<section id="do">
+<div class="eyebrow">What you can do here</div>
+<h2>Three rungs, three different invitations.</h2>
+<p class="lede">A page may only ask you to do what its evidence has earned. The MCP surface is deployed and answering, so it asks you to call it. The pipeline is in the tree and tested, so it asks you to read it and run the tests. The rest is a specification, so it can only ask you to read, challenge or implement it — and never to run something that does not exist.</p>
+{{CTA}}
+</section>
+
+</div>
+<footer><div class="in">
+<div>&copy; {{YEAR}} Agentelic&ensp;·&ensp;<a href="/">{{QUESTION}}</a></div>
+<div class="links"><a href="{{SPEC}}">Spec</a><a href="{{REPO}}">Source</a><a href="{{CONTACT}}">Challenge a claim</a><a href="https://computedriven.com">ComputeDriven</a><a href="https://ampersandboxdesign.com">[&amp;]</a></div>
+</div>
+<p class="attrib"><span class="stamp">{{STAMP}}</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the issue tracker — there is no email address on this site, and no form, because neither has been set up rather than because we would not like one.</p>
+</footer>
+<script src="/idanim.js" defer></script>
+</body></html>
