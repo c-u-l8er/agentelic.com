@@ -289,6 +289,7 @@ let html = read("src/landing.html")
   .replace(/\{\{REPO\}\}/g, esc(S.repo))
   .replace(/\{\{SPEC\}\}/g, esc(S.spec_url || "https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md"))
   .replace(/\{\{CONTACT\}\}/g, esc(S.contact.url))
+  .replace(/\{\{FORM_ENDPOINT\}\}/g, esc(S.contact.endpoint))
   .replace(/\{\{STAMP\}\}/g, esc(stamp))
   .replace(/\{\{YEAR\}\}/g, String(new Date().getFullYear()));
 
@@ -319,6 +320,40 @@ if (left) die(`unrendered token(s) survived into the artifact: ${[...new Set(lef
 
 writeFileSync(resolve(root, "index.html"), html);
 writeFileSync(resolve(root, "idanim.js"), read("src/idanim.js"));
+writeFileSync(resolve(root, "contact.js"), read("src/contact.js"));
+
+// ── 5. the emit manifest — SHELL.md r6, hole 2 ────────────────────────────
+// If this file THROWS, the previous index.html stays on disk and a gate that
+// only reads the artifact approves a STALE ARTIFACT. Nothing proved the page
+// came from the source beside it. So the last thing a SUCCESSFUL build does is
+// record the sha256 of every input it read and every file it wrote.
+//
+// That is what makes the gate able to refuse alone:
+//   · a source hash that no longer matches  → the build has not run since the
+//     source changed, which is exactly the "build threw" case;
+//   · an artifact hash that no longer matches → someone hand-edited the emitted
+//     page, which this repo's CLAUDE.md forbids and nothing enforced.
+//
+// No timestamp on purpose: the manifest then changes only when the bytes do, so
+// its diff is exactly the set of artifact changes and never build noise.
+{
+  const sha = (p) => createHash("sha256").update(readFileSync(resolve(root, p))).digest("hex");
+  const sources = {};
+  for (const p of ["src/landing.html", "src/shell.css", "src/idanim.js", "src/contact.js", "records/surface.json", "build-site.mjs"]) sources[p] = sha(p);
+  const artifacts = {};
+  for (const p of ["index.html", "idanim.js", "contact.js"]) artifacts[p] = sha(p);
+  const build_id = createHash("sha256").update(Object.entries(sources).map(([k, v]) => `${k}:${v}`).join("\n")).digest("hex").slice(0, 16);
+  writeFileSync(
+    resolve(root, "records/build.json"),
+    JSON.stringify({
+      _comment:
+        "Written by build-site.mjs as the last act of a SUCCESSFUL emit. launch-gate.mjs recomputes every hash here and refuses if one moved: a source that no longer matches means the build did not run since the source changed (a build that throws leaves the old index.html in place), and an artifact that no longer matches means the emitted page was hand-edited. SHELL.md r6, hole 2. Do not edit by hand — rebuild.",
+      build_id,
+      sources,
+      artifacts,
+    }, null, 2) + "\n",
+  );
+}
 
 console.log(
   `✓ built index.html — ${html.length} bytes · rung ${S.surface_rung} · ` +

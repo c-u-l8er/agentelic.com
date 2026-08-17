@@ -62,8 +62,16 @@ img,canvas,svg{max-width:100%}
 .logo span{color:var(--acc)}
 .logo:hover,.logo:focus-visible{color:var(--acc)}
 .top nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
-.top nav a{color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
-.top nav a:hover,.top nav a:focus-visible{color:var(--acc)}
+/* SHELL.md r7. `:not(.btn)` is load-bearing, not tidiness. Unscoped,
+   `.top nav a` is specificity 0,2,1 and `.btn` is 0,1,0, so the nav rule wins
+   for any CTA placed inside the nav, and the button paints --fg2 on the accent
+   instead of its own dark ink. This nav carries no .btn today, so the defect is
+   LATENT here rather than shipped — which is the reason to scope it now, since
+   the next lane to add a header CTA would inherit an invisible one. Measured on
+   the sibling surfaces at 1.19:1. Do not "fix" this by raising .btn instead. */
+.top nav a:not(.btn){color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
+.top nav a.btn{white-space:nowrap}
+.top nav a:not(.btn):hover,.top nav a:not(.btn):focus-visible{color:var(--acc)}
 .btn{display:inline-block;background:var(--acc);color:#03080f;font-weight:700;border-radius:var(--r);padding:11px 20px;text-decoration:none;font-size:var(--sm);border:1px solid var(--acc)}
 .btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line2);font-weight:500}
 .btn:hover,.btn:focus-visible{filter:brightness(1.12)}
@@ -195,3 +203,29 @@ footer .links{display:flex;flex-wrap:wrap;gap:20px}
 .top{flex-direction:column;align-items:flex-start;gap:11px}
 .top nav{width:100%}
 }
+
+/* --- the correction form (SHELL.md r9) ---
+   Ruled by Travis 2026-08-17 and it closes the [TRAVIS] blocker fourteen
+   surfaces reported: contact is the ComputeDriven Formspree endpoint, and the
+   shape is copied from computedriven.com, not just the URL.
+
+   A REAL <form action> with method="POST" — not a fetch bolted to a button. It
+   posts on its own with JavaScript off, like the rest of this page's content.
+   /contact.js only upgrades it to an inline reply, and prints success only on
+   an actual 2xx. The honeypot is positioned off-screen rather than
+   display:none, because some bots skip anything a stylesheet has explicitly
+   hidden. */
+.say{margin-top:20px;max-width:66ch}
+.say-row{display:grid;grid-template-columns:1fr 1.5fr;gap:14px}
+@media(max-width:640px){.say-row{grid-template-columns:1fr}}
+.say-f>span{display:block;font-family:var(--mono);font-size:var(--xs);letter-spacing:.13em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px}
+.say input[type=email],.say textarea{width:100%;background:var(--ink2);border:1px solid var(--line2);border-radius:var(--r);color:var(--fg);font-family:var(--ui);font-size:var(--sm);line-height:1.5;padding:10px 12px;resize:vertical}
+.say input[type=email]:focus,.say textarea:focus{outline:none;border-color:var(--acc)}
+.say input[type=email]::placeholder,.say textarea::placeholder{color:var(--fg3)}
+.say input[name=_gotcha]{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.say-act{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.say-act .btn{cursor:pointer;font-family:var(--ui)}
+.say-act .btn[disabled]{opacity:.55;cursor:default;filter:none}
+.say-msg{font-family:var(--mono);font-size:var(--xs);color:var(--fg3);margin:0}
+.say-msg.ok{color:var(--data)}
+.say-msg.bad{color:var(--warn)}

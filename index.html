@@ -48,8 +48,9 @@ img,canvas,svg{max-width:100%}
 .logo span{color:var(--acc)}
 .logo:hover,.logo:focus-visible{color:var(--acc)}
 .top nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
-.top nav a{color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
-.top nav a:hover,.top nav a:focus-visible{color:var(--acc)}
+.top nav a:not(.btn){color:var(--fg2);text-decoration:none;font-size:var(--sm);font-weight:500;white-space:nowrap}
+.top nav a.btn{white-space:nowrap}
+.top nav a:not(.btn):hover,.top nav a:not(.btn):focus-visible{color:var(--acc)}
 .btn{display:inline-block;background:var(--acc);color:#03080f;font-weight:700;border-radius:var(--r);padding:11px 20px;text-decoration:none;font-size:var(--sm);border:1px solid var(--acc)}
 .btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line2);font-weight:500}
 .btn:hover,.btn:focus-visible{filter:brightness(1.12)}
@@ -142,7 +143,21 @@ footer .links{display:flex;flex-wrap:wrap;gap:20px}
 @media(max-width:430px){
 .top{flex-direction:column;align-items:flex-start;gap:11px}
 .top nav{width:100%}
-}</style>
+}
+.say{margin-top:20px;max-width:66ch}
+.say-row{display:grid;grid-template-columns:1fr 1.5fr;gap:14px}
+@media(max-width:640px){.say-row{grid-template-columns:1fr}}
+.say-f>span{display:block;font-family:var(--mono);font-size:var(--xs);letter-spacing:.13em;text-transform:uppercase;color:var(--fg3);margin-bottom:6px}
+.say input[type=email],.say textarea{width:100%;background:var(--ink2);border:1px solid var(--line2);border-radius:var(--r);color:var(--fg);font-family:var(--ui);font-size:var(--sm);line-height:1.5;padding:10px 12px;resize:vertical}
+.say input[type=email]:focus,.say textarea:focus{outline:none;border-color:var(--acc)}
+.say input[type=email]::placeholder,.say textarea::placeholder{color:var(--fg3)}
+.say input[name=_gotcha]{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.say-act{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.say-act .btn{cursor:pointer;font-family:var(--ui)}
+.say-act .btn[disabled]{opacity:.55;cursor:default;filter:none}
+.say-msg{font-family:var(--mono);font-size:var(--xs);color:var(--fg3);margin:0}
+.say-msg.ok{color:var(--data)}
+.say-msg.bad{color:var(--warn)}</style>
 <script type="module" src="/amp-nav.js"></script></head><body>
 <div class="band" data-tier="3"><span class="where">Agentelic is <b>a specification</b> in the ComputeDriven world &mdash; <a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md">read it</a></span><span class="rung" data-rung="live_deployed" title="spec · in_tree · live_local · live_deployed · external">live_deployed</span><span class="covers">That rung covers the MCP tool surface at app.agentelic.com/mcp, which answers tools/list and template_list — and nothing that needs a database, which returns 500 there today.</span></div>
 <amp-nav property="agentelic"></amp-nav>
@@ -287,12 +302,33 @@ node build-site.mjs   <span class="c">// refuses to emit the page on a mismatch<
 </div></div>
 </section>
 
+<section id="say">
+<div class="eyebrow">A correction is worth more than a compliment</div>
+<h2>Tell us a figure on this page is wrong.</h2>
+<p class="lede">Every number here is a measurement with a date on it, and measurements go stale. The form below is a real <code>form</code> with a real <code>action</code>: it posts to <code>formspree.io</code> when <b>you</b> press the button, and it works with JavaScript off. The script that upgrades it to an inline reply prints &ldquo;sent&rdquo; only when the endpoint actually answers 2xx &mdash; a form that says thank-you on submit and drops the message is the exact failure this page argues against. If you would rather leave a public trail, <a href="https://github.com/c-u-l8er/agentelic.com/issues">open an issue</a> instead.</p>
+<form class="say" action="https://formspree.io/f/xaewoadr" method="POST" novalidate>
+<div class="say-row">
+<label class="say-f"><span>Your email</span>
+<input type="email" name="email" autocomplete="email" placeholder="so a reply can reach you" required></label>
+<label class="say-f"><span>Message</span>
+<textarea name="message" rows="3" placeholder="a question, a correction, a number of ours you think is wrong" required></textarea></label>
+</div>
+<!-- Formspree's honeypot: a bot fills it, a person never sees it. -->
+<input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+<div class="say-act">
+<button type="submit" class="btn">Send</button>
+<p class="say-msg" role="status" aria-live="polite"></p>
+</div>
+</form>
+</section>
+
 </div>
 <footer><div class="in">
 <div>&copy; 2026 Agentelic&ensp;·&ensp;<a href="/">What can a build actually prove about an agent?</a></div>
 <div class="links"><a href="https://docs.ampersandboxdesign.com/#/agentelic.com/docs/spec/README.md">Spec</a><a href="https://github.com/c-u-l8er/agentelic.com">Source</a><a href="https://github.com/c-u-l8er/agentelic.com/issues">Challenge a claim</a><a href="https://computedriven.com">ComputeDriven</a><a href="https://ampersandboxdesign.com">[&amp;]</a></div>
 </div>
-<p class="attrib"><span class="stamp">agentelic 0.3.0 · shell-r5 · record 2026-08-16 · built 2026-08-17</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the issue tracker — there is no email address on this site, and no form, because neither has been set up rather than because we would not like one.</p>
+<p class="attrib"><span class="stamp">agentelic 0.3.0 · shell-r9 · record 2026-08-16 · built 2026-08-17</span>&ensp;·&ensp;Decoration only: the pipeline above draws nothing that is measured and nothing that is claimed — its stage and unit counts are deliberately not any figure on this page, and the build refuses if one of them turns up as text. Every figure here is recomputed from a frozen record at build time; the two template hashes are recomputed from the template files themselves with the algorithm the product runs. Corrections go to the form above, which posts to the same Formspree endpoint computedriven.com uses — a real <code>form action</code>, so it works with JavaScript off — or to the issue tracker if you would rather leave a public trail. There is still no email address anywhere on this site, and the gate refuses one.</p>
 </footer>
 <script src="/idanim.js" defer></script>
+<script src="/contact.js" defer></script>
 </body></html>

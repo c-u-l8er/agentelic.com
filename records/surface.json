@@ -8,7 +8,7 @@
   "surface": "Agentelic",
   "parent": "ComputeDriven",
 
-  "shell_revision": "shell-r5",
+  "shell_revision": "shell-r9",
 
   "tier": 3,
   "layer": null,
@@ -243,9 +243,10 @@
   },
 
   "contact": {
-    "kind": "github_issues",
+    "kind": "formspree",
+    "endpoint": "https://formspree.io/f/xaewoadr",
     "url": "https://github.com/c-u-l8er/agentelic.com/issues",
-    "_comment": "Deliberately NOT a mailto: — Travis's call, 2026-08-11 — and deliberately NOT toolboxhvac's Formspree endpoint, which belongs to that surface. This page previously carried mailto:hello@agentelic.com. If Agentelic needs a non-GitHub correction channel it must have its own endpoint, or an explicit ruling to share one. Flagged [TRAVIS]."
+    "_comment": "SHELL.md r9 \u2014 RULED by Travis 2026-08-17, and it closes the [TRAVIS] blocker fourteen surfaces reported. No Formspree endpoint existed for this domain, so corrections pointed at GitHub issues; the ruling is to use the ComputeDriven endpoint \u2014 the same one computedriven.com posts to \u2014 and to copy the form's SHAPE (a real <form action> that works with JavaScript off, the _gotcha honeypot, success printed only on an actual 2xx) and not merely the URL. Still deliberately NOT a mailto: (Travis's call, 2026-08-11) and the gate still refuses one. `url` stays as the second, public route for anyone who would rather leave a trail."
   },
 
   "gates": {

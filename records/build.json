@@ -1,0 +1,17 @@
+{
+  "_comment": "Written by build-site.mjs as the last act of a SUCCESSFUL emit. launch-gate.mjs recomputes every hash here and refuses if one moved: a source that no longer matches means the build did not run since the source changed (a build that throws leaves the old index.html in place), and an artifact that no longer matches means the emitted page was hand-edited. SHELL.md r6, hole 2. Do not edit by hand — rebuild.",
+  "build_id": "6b987e71704bda58",
+  "sources": {
+    "src/landing.html": "d3bdf631dbe96f5c6998783747d967e59515d9032226d5d417cb3ca51de634dd",
+    "src/shell.css": "db57e18e523438a60afe081a0b19c375854e25d32d3c8df09371e1e72a534230",
+    "src/idanim.js": "94a4721aa3deaca8f048e4f704744693c7fd204c854c9d540961b908ebf8faff",
+    "src/contact.js": "cf280a1d24869ab04c58695ff993eb1b0edd235d54c75c1dd07e8631ba047b1c",
+    "records/surface.json": "f761eb436cc7cd01632bb85b303025f8854d69245defaa7c0cbd66b03889c81d",
+    "build-site.mjs": "00a9ad5461be8cc0decf8944f8d9179a748e27c4b51577695bddc869ed38c31d"
+  },
+  "artifacts": {
+    "index.html": "308d8ec3ed0390882ecb8de5cecd6a7a47aebf616f9cedf9c7163fd54e4241d0",
+    "idanim.js": "94a4721aa3deaca8f048e4f704744693c7fd204c854c9d540961b908ebf8faff",
+    "contact.js": "cf280a1d24869ab04c58695ff993eb1b0edd235d54c75c1dd07e8631ba047b1c"
+  }
+}
